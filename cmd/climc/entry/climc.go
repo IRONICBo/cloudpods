@@ -276,6 +276,8 @@ func executeSubcommand(
 		fmt.Println(helpStr)
 		return
 	}
+	log.Infof("sess:%#v, suboptions: %#v", sessionFactory().Header, suboptions)
+	// parallel是用来做压测的，一般就是进入这个步骤
 	if parallel <= 1 {
 		sess := sessionFactory()
 		err := subcmd.Invoke(sess, suboptions)

@@ -18,11 +18,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"yunion.io/x/log"
 )
 
 func Test_baseOptions(t *testing.T) {
 	opt := newBaseOptions_x86_64()
 	assert := assert.New(t)
+
+	log.Debugf("opt: %#v", opt)
 
 	// test object
 	assert.Equal("-object iothread,id=iothread0", opt.Object("iothread", map[string]string{"id": "iothread0"}))

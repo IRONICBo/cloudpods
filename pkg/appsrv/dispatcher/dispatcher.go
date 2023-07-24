@@ -95,6 +95,8 @@ func AddModelDispatcher(prefix string, app *appsrv.Application, manager IModelDi
 		manager.Filter(performClassActionHandler), metadata, "perform_class_action", tags)
 	manager.CustomizeHandlerInfo(h)
 	// performAction
+	// 指定了resourceid，例如/servers/test01/start，就会走这个方法
+	// 在HandlerInfo中，这个方法的名字是perform_action
 	h = app.AddHandler2("POST",
 		fmt.Sprintf("%s/%s/<resid>/<action>", prefix, manager.KeywordPlural()),
 		manager.Filter(performActionHandler), metadata, "perform_action", tags)

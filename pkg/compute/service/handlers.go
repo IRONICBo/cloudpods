@@ -119,7 +119,7 @@ func InitHandlers(app *appsrv.Application) {
 		models.CachedimageManager,
 		models.HostManager,
 		models.SchedtagManager,
-		models.GuestManager,
+		models.GuestManager, // 虚拟机Manager
 		models.GroupManager,
 		models.DiskManager,
 		models.NetworkManager,

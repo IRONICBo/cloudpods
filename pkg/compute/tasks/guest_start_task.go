@@ -45,6 +45,7 @@ func (self *GuestStartTask) OnInit(ctx context.Context, obj db.IStandaloneModel,
 	self.RequestStart(ctx, guest)
 }
 
+// 请求虚拟机所在的host agent启动虚拟机，这里的host agent是kvm，成功之后会设置OnStartComplete
 func (self *GuestStartTask) RequestStart(ctx context.Context, guest *models.SGuest) {
 	self.SetStage("OnStartComplete", nil)
 	host, _ := guest.GetHost()

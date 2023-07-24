@@ -864,6 +864,7 @@ func (this *SubcommandArgument) Invoke(args ...interface{}) error {
 	if !ok {
 		return fmt.Errorf("Unknown subcommand %s", cmd)
 	}
+	log.Errorf("callback: %#v", val.callback)
 	out := val.callback.Call(inargs)
 	if len(out) == 1 {
 		if out[0].IsNil() {

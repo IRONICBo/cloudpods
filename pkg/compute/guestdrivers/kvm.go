@@ -250,9 +250,12 @@ func (self *SKVMGuestDriver) RequestStopOnHost(ctx context.Context, guest *model
 	}
 	body.Add(jsonutils.NewInt(timeout), "timeout")
 
+	// 这里是包装了请求Task的方法
 	header := self.getTaskRequestHeader(task)
 
+	// 请求的URL在这里
 	url := fmt.Sprintf("%s/servers/%s/stop", host.ManagerUri, guest.Id)
+	// 请求的方法
 	_, _, err = httputils.JSONRequest(httputils.GetDefaultClient(), ctx, "POST", url, header, body, false)
 	return err
 }
@@ -307,6 +310,7 @@ func (self *SKVMGuestDriver) OnGuestDeployTaskDataReceived(ctx context.Context, 
 	return nil
 }
 
+// 这里应该也是，包装请求Start的方法
 func (self *SKVMGuestDriver) RequestStartOnHost(ctx context.Context, guest *models.SGuest, host *models.SHost, userCred mcclient.TokenCredential, task taskman.ITask) error {
 	header := self.getTaskRequestHeader(task)
 

@@ -75,6 +75,8 @@ func (worker *SWorker) isDetached() bool {
 	return worker.state == WORKER_STATE_DETACH
 }
 
+// 启动Task任务
+// 启动虚拟机的参数
 func (worker *SWorker) run() {
 	defer worker.manager.removeWorker(worker)
 	for {

@@ -26,7 +26,7 @@ func init() {
 	type SchedpoliciesListOptions struct {
 		options.BaseListOptions
 	}
-	R(&SchedpoliciesListOptions{}, "sched-policy-list", "List scheduler policies", func(s *mcclient.ClientSession, args *SchedpoliciesListOptions) error {
+	R(&SchedpoliciesListOptions{}, "sched-policy-list", "List  local task runr policies", func(s *mcclient.ClientSession, args *SchedpoliciesListOptions) error {
 		var params *jsonutils.JSONDict
 		{
 			var err error

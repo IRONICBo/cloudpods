@@ -61,6 +61,7 @@ func AddGuestTaskHandler(prefix string, app *appsrv.Application) {
 			fmt.Sprintf("%s/%s/<sid>", prefix, keyWord),
 			auth.Authenticate(deleteGuest))
 
+		// 可用的请求动作，这些都是task可以手动执行的
 		for action, f := range map[string]actionFunc{
 			"create":                   guestCreate,
 			"deploy":                   guestDeploy,

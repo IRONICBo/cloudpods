@@ -56,7 +56,7 @@ func init() {
 	cmd.BatchPerform("enable", &options.BaseIdsOptions{})
 	cmd.BatchPerform("disable", &options.BaseIdsOptions{})
 	cmd.BatchPerform("syncstatus", &options.BaseIdsOptions{})
-	cmd.BatchPerform("sync-config", &options.BaseIdsOptions{})
+	cmd.BatchPerform("sync-confixg", &options.BaseIdsOptions{})
 	cmd.BatchPerform("prepare", &options.BaseIdsOptions{})
 	cmd.BatchPerform("ipmi-probe", &options.BaseIdsOptions{})
 	cmd.BatchPerform("reserve-cpus", &compute.HostReserveCpusOptions{})

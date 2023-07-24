@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"yunion.io/x/jsonutils"
+	"yunion.io/x/log"
 	"yunion.io/x/pkg/util/printutils"
 	"yunion.io/x/pkg/utils"
 
@@ -404,11 +405,11 @@ func (cmd ResourceCmd) PerformWithKeyword(keyword, action string, args IPerformO
 		if err != nil {
 			return err
 		}
-		ret, err := man.(modulebase.Manager).PerformAction(s, args.GetId(), action, params)
+		_, err = man.(modulebase.Manager).PerformAction(s, args.GetId(), action, params)
 		if err != nil {
 			return err
 		}
-		cmd.printObject(ret)
+		// cmd.printObject(ret)
 		return nil
 	}
 	cmd.Run(keyword, args, callback)
@@ -464,6 +465,9 @@ func (cmd ResourceCmd) BatchPerform(action string, args IBatchPerformOpt) {
 		if err != nil {
 			return err
 		}
+
+		log.Errorf("Man[man:%#v]", man.(modulebase.Manager))
+		log.Errorf("BatchPerform[action:%s args.GetIds():%s action:%s params:%s]", action, args.GetIds(), action, params)
 		ret := man.(modulebase.Manager).BatchPerformAction(s, args.GetIds(), action, params)
 		printBatchResults(ret, man.GetColumns(s))
 		return nil

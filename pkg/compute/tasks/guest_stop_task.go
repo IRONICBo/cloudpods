@@ -44,7 +44,7 @@ func (self *GuestStopTask) OnInit(ctx context.Context, obj db.IStandaloneModel, 
 }
 
 func (self *GuestStopTask) stopGuest(ctx context.Context, guest *models.SGuest) {
-	host, err := guest.GetHost()
+	host, err := guest.GetHost() // 这里获取到了主机的对象
 	if err != nil {
 		self.OnGuestStopTaskCompleteFailed(ctx, guest, jsonutils.NewString(errors.Wrapf(err, "GetHost").Error()))
 		return
@@ -53,6 +53,7 @@ func (self *GuestStopTask) stopGuest(ctx context.Context, guest *models.SGuest) 
 		guest.SetStatus(self.GetUserCred(), api.VM_STOPPING, "")
 	}
 	self.SetStage("OnGuestStopTaskComplete", nil)
+	// 请求虚拟机所在的host agent停止虚拟机，这里的host agent是kvm，成功之后会设置OnMasterStopTaskComplete
 	err = guest.GetDriver().RequestStopOnHost(ctx, guest, host, self, !self.IsSubtask())
 	if err != nil {
 		self.OnGuestStopTaskCompleteFailed(ctx, guest, jsonutils.NewString(err.Error()))

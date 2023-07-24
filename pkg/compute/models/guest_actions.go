@@ -1007,10 +1007,12 @@ func (self *SGuest) StartResumeTask(ctx context.Context, userCred mcclient.Token
 	return self.GetDriver().StartResumeTask(ctx, userCred, self, nil, parentTaskId)
 }
 
+// 启动虚拟机的入口
 func (self *SGuest) PerformStart(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
 	data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
 	if utils.IsInStringArray(self.Status, []string{api.VM_READY, api.VM_START_FAILED, api.VM_SAVE_DISK_FAILED, api.VM_SUSPEND}) {
 		if err := self.ValidateEncryption(ctx, userCred); err != nil {
+			// 校验Key是否合理
 			return nil, errors.Wrap(httperrors.ErrForbidden, "encryption key not accessible")
 		}
 		if !self.guestDisksStorageTypeIsShared() {
@@ -1028,6 +1030,7 @@ func (self *SGuest) PerformStart(ctx context.Context, userCred mcclient.TokenCre
 			if data != nil {
 				kwargs = data.(*jsonutils.JSONDict)
 			}
+			// 调用驱动的Start方法
 			err := self.GetDriver().PerformStart(ctx, userCred, self, kwargs)
 			return nil, err
 		} else {
@@ -1190,6 +1193,8 @@ func (self *SGuest) StartGuestStopTask(ctx context.Context, userCred mcclient.To
 	if err != nil {
 		return errors.Wrapf(err, "db.Update")
 	}
+
+	// 获取不同driver下面的Task，然后执行对应的关机操作。
 	return driver.StartGuestStopTask(self, ctx, userCred, params, parentTaskId)
 }
 
@@ -1416,10 +1421,12 @@ func (self *SGuest) StartInsertVfdTask(ctx context.Context, floppyOrdinal int64,
 	return nil
 }
 
+// StartGueststartTask ???这里好像是写错了，应该是StartGuestStartTask，怪不得找不到
 func (self *SGuest) StartGueststartTask(
 	ctx context.Context, userCred mcclient.TokenCredential,
 	data *jsonutils.JSONDict, parentTaskId string,
 ) error {
+	// 判断是否是本地存储，如果是的话就无法分享
 	if self.Hypervisor == api.HYPERVISOR_KVM && self.guestDisksStorageTypeIsShared() {
 		return self.GuestSchedStartTask(ctx, userCred, data, parentTaskId)
 	} else {
@@ -1441,6 +1448,7 @@ func (self *SGuest) GuestSchedStartTask(
 	return nil
 }
 
+// 这里是请求启动虚拟机的接口
 func (self *SGuest) GuestNonSchedStartTask(
 	ctx context.Context, userCred mcclient.TokenCredential,
 	data *jsonutils.JSONDict, parentTaskId string,
@@ -3579,6 +3587,7 @@ func (self *SGuest) StartMirrorJob(ctx context.Context, userCred mcclient.TokenC
 	return nil
 }
 
+// PerformDirtyServerStart 这里好像是启动虚拟机的入口 应该是映射到了server-dirty-server-start
 func (manager *SGuestManager) PerformDirtyServerStart(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject, data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
 	guestId, err := data.GetString("guest_id")
 	if err != nil {

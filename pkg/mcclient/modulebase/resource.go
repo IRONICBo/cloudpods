@@ -505,6 +505,9 @@ func (this *ResourceManager) PerformActionInContext(session *mcclient.ClientSess
 
 func (this *ResourceManager) PerformActionInContexts(session *mcclient.ClientSession, id string, action string, params jsonutils.JSONObject, ctxs []ManagerContext) (jsonutils.JSONObject, error) {
 	path := fmt.Sprintf("/%s/%s/%s", this.ContextPath(ctxs), url.PathEscape(id), url.PathEscape(action))
+	// BatchPerform之类的最后还是进入这个方法了
+	// [E 230721 16:00:03 modulebase.(*ResourceManager).PerformActionInContexts(resource.go:509)] Path: /servers/test01/start
+	log.Errorf("Path: %s", path)
 	result, err := this._post(session, path, this.params2Body(session, params, this.Keyword), this.Keyword)
 	if err != nil {
 		return nil, err
@@ -531,6 +534,8 @@ func (this *ResourceManager) BatchPerformClassActionInContexts(session *mcclient
 	})
 }
 
+// [E 230721 15:56:48 shell.ResourceCmd.BatchPerform.func1(helper.go:469)] Man[man:&compute.ServerManager{ResourceManager:modulebase.ResourceManager{BaseManager:modulebase.BaseManager{serviceType:"compute", endpointType:"", version:"", columns:[]string{"ID", "Name", "Billing_type", "IPs", "EIP", "Disk", "Status", "vcpu_count", "vmem_size", "ext_bw", "Zone_name", "Secgroup", "Secgrp_id", "vrouter", "vrouter_id", "Created_at", "Group_name", "Group_id", "Hypervisor", "os_type", "expired_at"}, adminColumns:[]string{"Host", "Tenant", "is_system", "auto_delete_at", "backup_host_name"}}, context:"", Keyword:"server", KeywordPlural:"servers", readFilter:(modulebase.TResourceFilter)(nil), writeFilter:(modulebase.TResourceFilter)(nil), enableFilter:false, nameFieldName:"", idFieldName:""}}]
+// climc 走入的是BatchPerformAction
 func (this *ResourceManager) BatchPerformAction(session *mcclient.ClientSession, idlist []string, action string, params jsonutils.JSONObject) []printutils.SubmitResult {
 	return this.BatchPerformActionInContexts(session, idlist, action, params, nil)
 }

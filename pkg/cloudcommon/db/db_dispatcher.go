@@ -1606,6 +1606,7 @@ func (dispatcher *DBModelDispatcher) PerformClassAction(ctx context.Context, act
 	return objectPerformAction(manager, nil, managerValue, ctx, userCred, action, query, data)
 }
 
+// 执行Perform类的请求
 func (dispatcher *DBModelDispatcher) PerformAction(ctx context.Context, idStr string, action string, query jsonutils.JSONObject, data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
 	userCred := fetchUserCredential(ctx)
 	manager := dispatcher.manager.GetMutableInstance(ctx, userCred, query, data)
@@ -1639,7 +1640,7 @@ func reflectDispatcher(
 	userCred mcclient.TokenCredential,
 	operator string,
 	generalFuncName string,
-	funcPrefix string,
+	funcPrefix string, // PerformStop 之类的，会调用这个前缀的方法
 	spec string,
 	query jsonutils.JSONObject,
 	data jsonutils.JSONObject,

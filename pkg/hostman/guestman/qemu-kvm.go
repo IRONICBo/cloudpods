@@ -620,6 +620,7 @@ func (s *SKVMGuestInstance) saveScripts(data *jsonutils.JSONDict) error {
 	return fileutils2.FilePutContents(s.GetStopScriptPath(), stopScript, false)
 }
 
+// 这里可能是启动的入口
 func (s *SKVMGuestInstance) GetStartScriptPath() string {
 	return path.Join(s.HomeDir(), "startvm")
 }
@@ -1554,6 +1555,7 @@ func (s *SKVMGuestInstance) prepareEncryptKeyForStart(ctx context.Context, userC
 	return params, nil
 }
 
+// 这里也有启动虚拟机
 func (s *SKVMGuestInstance) StartGuest(ctx context.Context, userCred mcclient.TokenCredential, params *jsonutils.JSONDict) error {
 	var err error
 	params, err = s.prepareEncryptKeyForStart(ctx, userCred, params)
@@ -1769,6 +1771,7 @@ func (s *SKVMGuestInstance) scriptStart(ctx context.Context) error {
 		return errors.Wrapf(err, "find process pid(%d)", pid)
 	}
 	for {
+		// 死循环，检测进程是否返回成功
 		err = proc.Signal(syscall.Signal(0))
 		if err != nil { // qemu process exited
 			log.Errorf("Guest %s check qemu(%d) process failed: %s", s.Id, pid, err)
