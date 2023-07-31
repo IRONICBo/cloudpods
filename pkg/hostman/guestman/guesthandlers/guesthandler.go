@@ -97,6 +97,7 @@ func AddGuestTaskHandler(prefix string, app *appsrv.Application) {
 			"qga-set-password":         qgaGuestSetPassword,
 			"qga-guest-ping":           qgaGuestPing,
 			"qga-command":              qgaCommand,
+			"guest-rescue":             guestRescue,
 		} {
 			app.AddHandler("POST",
 				fmt.Sprintf("%s/%s/<sid>/%s", prefix, keyWord, action),
@@ -853,4 +854,27 @@ func qgaCommand(ctx context.Context, userCred mcclient.TokenCredential, sid stri
 	}
 
 	return gm.QgaCommand(qgaCmd, sid, input.Timeout)
+}
+
+// guestRescue use rescue OS to attach damaged disk
+func guestRescue(ctx context.Context, userCred mcclient.TokenCredential, sid string, body jsonutils.JSONObject) (interface{}, error) {
+	if guestman.GetGuestManager().IsGuestExist(sid) {
+		return nil, httperrors.NewBadRequestError("Guest %s is exist", sid)
+	}
+
+	// Create a rescue guest
+	hostutils.DelayTaskWithWorker(ctx,
+		guestman.GetGuestManager().GuestCreate,
+		&guestman.SGuestDeploy{
+			UserCred: userCred,
+
+			Sid:    sid,
+			Body:   body,
+			IsInit: true,
+		},
+		guestman.NbdWorker,
+	)
+
+	// Start rescue guest
+	return guestman.GetGuestManager().GuestRescue(ctx, userCred, sid, body)
 }

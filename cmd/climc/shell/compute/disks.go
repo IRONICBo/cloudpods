@@ -451,4 +451,24 @@ func init() {
 		return nil
 	})
 
+	// GuestRescueOptions is used to start a rescue os.
+	type GuestRescueOptions struct {
+		ID          string `help:"ID of disk to operate" metavar:"DISK" json:"-"`
+		QemuVersion string `help:"prefer qemu version" json:"qemu_version"`
+	}
+	R(&GuestRescueOptions{}, "disk-rescue", "Rescue a vm disk", func(s *mcclient.ClientSession, opts *GuestRescueOptions) error {
+		params, err := options.StructToParams(opts)
+		if err != nil {
+			return err
+		}
+
+		result, err := modules.Disks.PerformAction(s, opts.ID, "rescue", params)
+		if err != nil {
+			return err
+		}
+
+		printObject(result)
+
+		return nil
+	})
 }

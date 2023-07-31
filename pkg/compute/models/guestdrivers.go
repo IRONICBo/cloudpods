@@ -236,6 +236,8 @@ type IGuestDriver interface {
 	RequestQgaCommand(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *SHost, guest *SGuest) (jsonutils.JSONObject, error)
 
 	FetchMonitorUrl(ctx context.Context, guest *SGuest) string
+
+	RequestGuestRescue(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *SHost, guest *SGuest) error
 }
 
 var guestDrivers map[string]IGuestDriver
