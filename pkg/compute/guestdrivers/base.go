@@ -517,6 +517,6 @@ func (self *SBaseGuestDriver) FetchMonitorUrl(ctx context.Context, guest *models
 	return influxdbUrl
 }
 
-func (self *SBaseGuestDriver) RequestGuestRescue(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
+func (self *SBaseGuestDriver) RequestGuestRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
 	return httperrors.ErrNotImplemented
 }

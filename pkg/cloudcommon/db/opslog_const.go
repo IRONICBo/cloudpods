@@ -319,4 +319,8 @@ const (
 
 	ACT_BIND   = "bind"
 	ACT_UNBIND = "unbind"
+
+	ACT_RESCUING    = "rescuing"
+	ACT_RESCUE      = "rescue"
+	ACT_RESCUE_FAIL = "rescue_fail"
 )

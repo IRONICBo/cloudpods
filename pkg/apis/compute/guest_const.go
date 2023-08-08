@@ -44,6 +44,9 @@ const (
 	VM_ATTACH_DISK     = "attach_disk"
 	VM_DETACH_DISK     = "detach_disk"
 	VM_UNSYNC          = "unsync"
+	VM_START_RESCUE    = "start_rescue"
+	VM_RESCUE_RUNNING  = "rescue_running"
+	VM_RESCUE_FAILED   = "rescue_failed"
 
 	VM_BACKUP_STARTING         = "backup_starting"
 	VM_BACKUP_STOPING          = "backup_stopping"

@@ -540,6 +540,9 @@ function nic_mtu() {
 		}
 	}
 
+	// set rescue flag to input
+	input.Rescue = s.Desc.Rescue
+
 	qemuOpts, err := qemu.GenerateStartOptions(input)
 	if err != nil {
 		return "", errors.Wrap(err, "GenerateStartCommand")

@@ -101,6 +101,29 @@ func (s *SGuestStopTask) CheckGuestRunningLater() {
 	s.checkGuestRunning()
 }
 
+// SGuestRescueTask Start a rescue vm
+type SGuestRescueTask struct {
+	*SKVMGuestInstance
+	ctx context.Context
+}
+
+func NewGuestRescueTask(guest *SKVMGuestInstance, ctx context.Context) *SGuestRescueTask {
+	return &SGuestRescueTask{
+		SKVMGuestInstance: guest,
+		ctx:               ctx,
+	}
+}
+
+func (s *SGuestRescueTask) Start() {
+	// TODO: Change startvm script
+
+	// Set vm to rescue status
+	guest := s.SKVMGuestInstance
+	guest.Desc.Rescue = true
+
+	hostutils.TaskComplete(s.ctx, nil)
+}
+
 type SGuestSuspendTask struct {
 	*SKVMGuestInstance
 	ctx              context.Context

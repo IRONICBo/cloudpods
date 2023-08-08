@@ -1087,30 +1087,3 @@ func (self *SKVMGuestDriver) FetchMonitorUrl(ctx context.Context, guest *models.
 	}
 	return self.SVirtualizedGuestDriver.FetchMonitorUrl(ctx, guest)
 }
-
-func (self *SKVMGuestDriver) RequestGuestRescue(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
-	url := fmt.Sprintf("%s/servers/%s/guest-rescue", host.ManagerUri, guest.Id)
-	httpClient := httputils.GetDefaultClient()
-	header := mcclient.GetTokenHeaders(userCred)
-
-	config := body.(*jsonutils.JSONDict)
-	desc, err := guest.GetDriver().GetJsonDescAtHost(ctx, userCred, guest, host, nil)
-	if err != nil {
-		return errors.Wrapf(err, "GetJsonDescAtHost")
-	}
-	config.Add(desc, "desc")
-
-	log.Errorln(config.String())
-
-	_, _, err = httputils.JSONRequest(httpClient, ctx, "POST", url, header, config, false)
-	if err != nil {
-		return err
-	}
-
-	//if jsonutils.QueryBoolean(res, "is_running", false) {
-	//	taskman.LocalTaskRun(task, func() (jsonutils.JSONObject, error) {
-	//		return body, nil
-	//	})
-	//}
-	return nil
-}

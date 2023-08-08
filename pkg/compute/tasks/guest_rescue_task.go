@@ -24,9 +24,6 @@ import (
 	"yunion.io/x/onecloud/pkg/cloudcommon/db"
 	"yunion.io/x/onecloud/pkg/cloudcommon/db/taskman"
 	"yunion.io/x/onecloud/pkg/compute/models"
-	"yunion.io/x/onecloud/pkg/compute/options"
-	"yunion.io/x/onecloud/pkg/mcclient/auth"
-	"yunion.io/x/onecloud/pkg/mcclient/modules/vpcagent"
 	"yunion.io/x/onecloud/pkg/util/logclient"
 )
 
@@ -39,51 +36,58 @@ func init() {
 }
 
 func (self *GuestRescueTask) OnInit(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
+	// Flow: stop -> modify startvm script for rescue -> start
 	guest := obj.(*models.SGuest)
-	db.OpsLog.LogEvent(guest, db.ACT_STARTING, nil, self.UserCred)
-	disk_access_path, _ := self.GetParams().GetString("disk_access_path")
-	params := data.(*jsonutils.JSONDict)
-	params.Add(jsonutils.NewString(disk_access_path), "disk_access_path")
-	self.RequestRescue(ctx, guest, params)
+	self.StopServer(ctx, guest)
 }
 
-func (self *GuestRescueTask) RequestRescue(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
-	_ = self.SetStage("OnStartComplete", nil)
-	host, _ := guest.GetHost()
-	_ = guest.SetStatus(self.UserCred, api.VM_STARTING, "")
-	err := guest.GetDriver().RequestGuestRescue(ctx, self.UserCred, data, host, guest)
-	if err != nil {
-		self.OnStartCompleteFailed(ctx, guest, jsonutils.NewString(err.Error()))
-		return
-	}
+func (self *GuestRescueTask) StopServer(ctx context.Context, guest *models.SGuest) {
+	db.OpsLog.LogEvent(guest, db.ACT_STOPPING, nil, self.UserCred)
+	guest.SetStatus(self.UserCred, api.VM_STOPPING, "")
+	self.SetStage("OnServerStopComplete", nil)
+	guest.StartGuestStopTask(ctx, self.UserCred, true, false, self.GetTaskId())
 }
 
-func (task *GuestRescueTask) OnStartComplete(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
+func (self *GuestRescueTask) OnServerStopComplete(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
 	guest := obj.(*models.SGuest)
-	isVpc, err := guest.IsOneCloudVpcNetwork()
-	if err != nil {
-		log.Errorf("IsOneCloudVpcNetwork fail: %s", err)
-	} else if isVpc {
-		// force update VPC topo
-		err := vpcagent.VpcAgent.DoSync(auth.GetAdminSession(ctx, options.Options.Region))
-		if err != nil {
-			log.Errorf("vpcagent.VpcAgent.DoSync fail %s", err)
-		}
-	}
-	db.OpsLog.LogEvent(guest, db.ACT_START, guest.GetShortDesc(ctx), task.UserCred)
-	logclient.AddActionLogWithStartable(task, guest, logclient.ACT_VM_START, guest.GetShortDesc(ctx), task.UserCred, true)
-	task.taskComplete(ctx, guest)
+	db.OpsLog.LogEvent(guest, db.ACT_STOP, guest.GetShortDesc(ctx), self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, guest.GetShortDesc(ctx), self.UserCred, true)
+
+	self.RescueStartServer(ctx, guest)
 }
 
-func (self *GuestRescueTask) OnStartCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
+func (self *GuestRescueTask) OnServerStopCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
 	guest := obj.(*models.SGuest)
-	_ = guest.SetStatus(self.UserCred, api.VM_START_FAILED, err.String())
-	db.OpsLog.LogEvent(guest, db.ACT_START_FAIL, err, self.UserCred)
-	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START, err, self.UserCred, false)
+	guest.SetStatus(self.UserCred, api.VM_STOP_FAILED, err.String())
+	db.OpsLog.LogEvent(guest, db.ACT_STOP_FAIL, err, self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, err, self.UserCred, false)
 	self.SetStageFailed(ctx, err)
 }
 
-func (self *GuestRescueTask) taskComplete(ctx context.Context, guest *models.SGuest) {
-	_ = models.HostManager.ClearSchedDescCache(guest.HostId)
+func (self *GuestRescueTask) RescueStartServer(ctx context.Context, guest *models.SGuest) {
+	guest.SetStatus(self.UserCred, api.VM_START_RESCUE, "")
+	self.SetStage("OnRescueStartServerComplete", nil)
+
+	log.Errorf("GuestRescueTask RescueStartServer %#v", self.GetParams())
+	// Set Guest rescue params to guest start params
+	guest.StartGueststartTask(ctx, self.UserCred, self.GetParams(), self.GetTaskId())
+}
+
+func (self *GuestRescueTask) OnRescueStartServerComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+	db.OpsLog.LogEvent(guest, db.ACT_RESCUE, guest.GetShortDesc(ctx), self.UserCred)
+	//db.OpsLog.LogEvent(guest, db.ACT_START, guest.GetShortDesc(ctx), self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
+	//logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START, guest.GetShortDesc(ctx), self.UserCred, true)
+
+	// Set guest status to rescue running
+	// Set guest status to rescue running
+	guest.SetStatus(self.UserCred, api.VM_RESCUE_RUNNING, "")
 	self.SetStageComplete(ctx, nil)
+}
+
+func (self *GuestRescueTask) OnRescueStartServerCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
+	guest := obj.(*models.SGuest)
+	guest.SetStatus(self.UserCred, api.VM_RESCUE_FAILED, err.String())
+	db.OpsLog.LogEvent(guest, db.ACT_RESCUE_FAIL, guest.GetShortDesc(ctx), self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START, guest.GetShortDesc(ctx), self.UserCred, true)
 }

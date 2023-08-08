@@ -946,4 +946,25 @@ func init() {
 		}
 		return nil
 	})
+
+	// ServerRescueOptions is used to start a rescue os.
+	type ServerRescueOptions struct {
+		ID          string `help:"ID of server" json:"-"`
+		QemuVersion string `help:"prefer qemu version" json:"qemu_version"`
+	}
+	R(&ServerRescueOptions{}, "server-rescue", "Rescue a guest server", func(s *mcclient.ClientSession, opts *ServerRescueOptions) error {
+		params, err := baseoptions.StructToParams(opts)
+		if err != nil {
+			return err
+		}
+
+		result, err := modules.Servers.PerformAction(s, opts.ID, "rescue", params)
+		if err != nil {
+			return err
+		}
+
+		printObject(result)
+
+		return nil
+	})
 }

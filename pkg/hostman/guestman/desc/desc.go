@@ -114,6 +114,9 @@ type SGuestHardwareDesc struct {
 	PCIControllers []*PCIController `json:",omitempty"`
 
 	AnonymousPCIDevs []*PCIDevice `json:",omitempty"`
+
+	// Set rescue status
+	Rescue bool `json:",omitempty"`
 }
 
 type SGuestIsaSerial struct {

@@ -18,18 +18,4 @@ const (
 	GUEST_RESCUE_BASE_PATH = "/opt/cloud/workspace/rescue"
 	GUEST_RESCUE_INITRAMFS = "initramfs"
 	GUEST_RESCUE_KERNEL    = "kernel"
-	GUEST_RESCUE_ROOT      = "root.qcow2"
 )
-
-type SGuestRescueConfig struct {
-	// Guest OS store path
-	BasePath string `json:"base_path"`
-	// Initramfs name
-	Initd string `json:"initd"`
-	// Kernel name
-	Kernel string `json:"kernel"`
-	// Root image name
-	Root string `json:"root"`
-	// damaged data disk
-	RescueDiskID string `json:"rescue_id"`
-}

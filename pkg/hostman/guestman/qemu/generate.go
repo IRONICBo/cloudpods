@@ -212,6 +212,13 @@ func generateScsiOptions(scsi *desc.SGuestVirtioScsi) string {
 	return opt
 }
 
+func generateInitrdOptions(initrdPath, kernel string) []string {
+	opts := make([]string, 0)
+	opts = append(opts, fmt.Sprintf("-initrd %s", initrdPath))
+	opts = append(opts, fmt.Sprintf("-kernel %s", kernel))
+	return opts
+}
+
 func generateDisksOptions(drvOpt QemuOptions, disks []*desc.SGuestDisk, isEncrypt, isMaster bool) []string {
 	opts := make([]string, 0)
 	for _, disk := range disks {
@@ -606,6 +613,8 @@ type GenerateStartOptionsInput struct {
 	EnablePvpanic        bool
 
 	EncryptKeyPath string
+
+	Rescue bool
 }
 
 func (input *GenerateStartOptionsInput) HasBootIndex() bool {
@@ -728,6 +737,15 @@ func GenerateStartOptions(
 	} else if input.GuestDesc.PvScsi != nil {
 		opts = append(opts, generatePCIDeviceOption(input.GuestDesc.PvScsi.PCIDevice))
 	}
+
+	// generate initrd and kernel options
+	if input.Rescue {
+		opts = append(opts, generateInitrdOptions(
+			fmt.Sprintf("%s/%s", api.GUEST_RESCUE_BASE_PATH, api.GUEST_RESCUE_INITRAMFS),
+			fmt.Sprintf("%s/%s", api.GUEST_RESCUE_BASE_PATH, api.GUEST_RESCUE_KERNEL),
+		)...)
+	}
+
 	// generate disk options
 	opts = append(opts, generateDisksOptions(
 		drvOpt, input.GuestDesc.Disks, isEncrypt, input.GuestDesc.IsMaster)...)

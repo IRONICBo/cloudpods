@@ -511,7 +511,6 @@ func (s *SKVMGuestInstance) asyncScriptStart(ctx context.Context, params interfa
 		return nil, errors.Wrap(err, "fuse mount")
 	}
 
-	// init live migrate listen port
 	if jsonutils.QueryBoolean(data, "need_migrate", false) || s.Desc.IsSlave {
 		migratePort := s.manager.GetLiveMigrateFreePort()
 		defer s.manager.unsetPort(migratePort)
@@ -551,6 +550,16 @@ func (s *SKVMGuestInstance) asyncScriptStart(ctx context.Context, params interfa
 		} else {
 			data.Set("vnc_port", jsonutils.NewInt(int64(vncPort)))
 		}
+
+		// init live migrate listen port
+		log.Errorf("before set rescue %v", jsonutils.QueryBoolean(data, "rescue", false))
+		// set rescue flag
+		if jsonutils.QueryBoolean(data, "rescue", false) {
+			s.Desc.Rescue = true
+		}
+		//s.Desc.Rescue = true
+		log.Errorf("before saveScripts data: %#v", data)
+		log.Errorf("before s.Desc.Rescue: %v", s.Desc.Rescue)
 
 		err = s.saveScripts(data)
 		if err != nil {
@@ -1805,6 +1814,11 @@ func (s *SKVMGuestInstance) ExecStopTask(ctx context.Context, params interface{}
 		return nil, hostutils.ParamsError
 	}
 	NewGuestStopTask(s, ctx, timeout).Start()
+	return nil, nil
+}
+
+func (s *SKVMGuestInstance) ExecRescueTask(ctx context.Context, params interface{}) (jsonutils.JSONObject, error) {
+	NewGuestRescueTask(s, ctx).Start()
 	return nil, nil
 }
 
