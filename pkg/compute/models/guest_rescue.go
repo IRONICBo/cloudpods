@@ -33,6 +33,11 @@ func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCr
 	data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
 	// TODO: Check vm status?
 
+	// Check vmem size, need to be greater than 2G
+	if self.VmemSize < 2048 {
+		return nil, errors.Errorf("vmem size must be greater than 2G")
+	}
+
 	// Create rescue system disk
 	_, err := DiskManager.newRescueSysDisk(ctx, userCred, self)
 	if err != nil {

@@ -18,7 +18,6 @@ import (
 	"context"
 
 	"yunion.io/x/jsonutils"
-	"yunion.io/x/log"
 
 	api "yunion.io/x/onecloud/pkg/apis/compute"
 	"yunion.io/x/onecloud/pkg/cloudcommon/db"
@@ -68,20 +67,22 @@ func (self *GuestRescueTask) RescueStartServer(ctx context.Context, guest *model
 	guest.SetStatus(self.UserCred, api.VM_START_RESCUE, "")
 	self.SetStage("OnRescueStartServerComplete", nil)
 
-	log.Errorf("GuestRescueTask RescueStartServer %#v", self.GetParams())
 	// Set Guest rescue params to guest start params
-	guest.StartGueststartTask(ctx, self.UserCred, self.GetParams(), self.GetTaskId())
+	host, _ := guest.GetHost()
+	err := guest.GetDriver().RequestStartOnHost(ctx, guest, host, self.UserCred, self)
+	if err != nil {
+		self.OnRescueStartServerCompleteFailed(ctx, guest, jsonutils.NewString(err.Error()))
+		return
+	}
+	//guest.StartGueststartTask(ctx, self.UserCred, self.GetParams(), self.GetTaskId())
 }
 
 func (self *GuestRescueTask) OnRescueStartServerComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
 	db.OpsLog.LogEvent(guest, db.ACT_RESCUE, guest.GetShortDesc(ctx), self.UserCred)
-	//db.OpsLog.LogEvent(guest, db.ACT_START, guest.GetShortDesc(ctx), self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
-	//logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START, guest.GetShortDesc(ctx), self.UserCred, true)
 
 	// Set guest status to rescue running
-	// Set guest status to rescue running
-	guest.SetStatus(self.UserCred, api.VM_RESCUE_RUNNING, "")
+	//guest.SetStatus(self.UserCred, api.VM_RESCUE_RUNNING, "")
 	self.SetStageComplete(ctx, nil)
 }
 
