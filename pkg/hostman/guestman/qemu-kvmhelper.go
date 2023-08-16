@@ -541,7 +541,9 @@ function nic_mtu() {
 	}
 
 	// set rescue flag to input
-	input.Rescue = s.Desc.Rescue
+	if s.Desc.RescueMode {
+		input.RescuePath = s.GetRescueDirPath()
+	}
 
 	qemuOpts, err := qemu.GenerateStartOptions(input)
 	if err != nil {

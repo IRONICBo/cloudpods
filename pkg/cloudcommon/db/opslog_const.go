@@ -320,7 +320,9 @@ const (
 	ACT_BIND   = "bind"
 	ACT_UNBIND = "unbind"
 
-	ACT_RESCUING    = "rescuing"
-	ACT_RESCUE      = "rescue"
-	ACT_RESCUE_FAIL = "rescue_fail"
+	ACT_RESCUING         = "rescuing"
+	ACT_RESCUE           = "rescue"
+	ACT_RESCUE_STOP      = "rescue_stop"
+	ACT_RESCUE_FAIL      = "rescue_fail"
+	ACT_RESCUE_STOP_FAIL = "rescue_stop_fail"
 )

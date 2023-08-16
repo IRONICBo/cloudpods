@@ -520,3 +520,7 @@ func (self *SBaseGuestDriver) FetchMonitorUrl(ctx context.Context, guest *models
 func (self *SBaseGuestDriver) RequestGuestRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
 	return httperrors.ErrNotImplemented
 }
+
+func (self *SBaseGuestDriver) RequestGuestRescueStop(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
+	return httperrors.ErrNotImplemented
+}

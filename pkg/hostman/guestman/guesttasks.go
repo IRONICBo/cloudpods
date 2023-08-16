@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"yunion.io/x/jsonutils"
 	"yunion.io/x/log"
 	"yunion.io/x/pkg/appctx"
@@ -101,25 +100,48 @@ func (s *SGuestStopTask) CheckGuestRunningLater() {
 	s.checkGuestRunning()
 }
 
-// SGuestRescueTask Start a rescue vm
-type SGuestRescueTask struct {
+// SGuestRescueStartTask Start a rescue vm
+type SGuestRescueStartTask struct {
 	*SKVMGuestInstance
 	ctx context.Context
 }
 
-func NewGuestRescueTask(guest *SKVMGuestInstance, ctx context.Context) *SGuestRescueTask {
-	return &SGuestRescueTask{
+func NewGuestRescueStartTask(guest *SKVMGuestInstance, ctx context.Context) *SGuestRescueStartTask {
+	return &SGuestRescueStartTask{
 		SKVMGuestInstance: guest,
 		ctx:               ctx,
 	}
 }
 
-func (s *SGuestRescueTask) Start() {
-	// TODO: Change startvm script
+func (s *SGuestRescueStartTask) Start() {
+	if err := s.prepareRescue(s.ctx); err != nil {
+		log.Errorf("prepareRescue fail %s", err)
+		hostutils.TaskFailed(s.ctx, err.Error())
+		return
+	}
 
-	// Set vm to rescue status
-	guest := s.SKVMGuestInstance
-	guest.Desc.Rescue = true
+	hostutils.TaskComplete(s.ctx, nil)
+}
+
+// SGuestRescueStopTask Stop a rescue vm, clean rescue files
+type SGuestRescueStopTask struct {
+	*SKVMGuestInstance
+	ctx context.Context
+}
+
+func NewGuestRescueStopTask(guest *SKVMGuestInstance, ctx context.Context) *SGuestRescueStopTask {
+	return &SGuestRescueStopTask{
+		SKVMGuestInstance: guest,
+		ctx:               ctx,
+	}
+}
+
+func (s *SGuestRescueStopTask) Start() {
+	if err := s.clearRescue(s.ctx); err != nil {
+		log.Errorf("clearRescue fail %s", err)
+		hostutils.TaskFailed(s.ctx, err.Error())
+		return
+	}
 
 	hostutils.TaskComplete(s.ctx, nil)
 }

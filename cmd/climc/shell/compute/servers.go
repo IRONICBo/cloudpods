@@ -967,4 +967,25 @@ func init() {
 
 		return nil
 	})
+
+	// ServerRescueStopOptions is used to stop a rescue os.
+	type ServerRescueStopOptions struct {
+		ID          string `help:"ID of server" json:"-"`
+		QemuVersion string `help:"prefer qemu version" json:"qemu_version"`
+	}
+	R(&ServerRescueStopOptions{}, "server-rescue-stop", "Stop rescue a guest server", func(s *mcclient.ClientSession, opts *ServerRescueStopOptions) error {
+		params, err := baseoptions.StructToParams(opts)
+		if err != nil {
+			return err
+		}
+
+		result, err := modules.Servers.PerformAction(s, opts.ID, "rescue-stop", params)
+		if err != nil {
+			return err
+		}
+
+		printObject(result)
+
+		return nil
+	})
 }

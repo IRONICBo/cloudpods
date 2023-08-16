@@ -238,6 +238,7 @@ type IGuestDriver interface {
 	FetchMonitorUrl(ctx context.Context, guest *SGuest) string
 
 	RequestGuestRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *SHost, guest *SGuest) error
+	RequestGuestRescueStop(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *SHost, guest *SGuest) error
 }
 
 var guestDrivers map[string]IGuestDriver

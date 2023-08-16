@@ -16,6 +16,7 @@ package qemu
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"yunion.io/x/pkg/errors"
@@ -212,10 +213,17 @@ func generateScsiOptions(scsi *desc.SGuestVirtioScsi) string {
 	return opt
 }
 
-func generateInitrdOptions(initrdPath, kernel string) []string {
+func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img string) []string {
 	opts := make([]string, 0)
 	opts = append(opts, fmt.Sprintf("-initrd %s", initrdPath))
 	opts = append(opts, fmt.Sprintf("-kernel %s", kernel))
+
+	// create temp disk info
+	driveString := fmt.Sprintf("file=%s,if=none,id=initrd,cache=none,aio=native,file.locking=off", sys_img)
+	opts = append(opts, drvOpt.Drive(driveString))
+	deviceString := fmt.Sprintf("virtio-blk-pci,drive=initrd,iothread=iothread0,id=initrd")
+	opts = append(opts, drvOpt.Device(deviceString))
+
 	return opts
 }
 
@@ -614,7 +622,7 @@ type GenerateStartOptionsInput struct {
 
 	EncryptKeyPath string
 
-	Rescue bool
+	RescuePath string // rescue base path
 }
 
 func (input *GenerateStartOptionsInput) HasBootIndex() bool {
@@ -739,10 +747,12 @@ func GenerateStartOptions(
 	}
 
 	// generate initrd and kernel options
-	if input.Rescue {
+	if input.RescuePath != "" {
 		opts = append(opts, generateInitrdOptions(
-			fmt.Sprintf("%s/%s", api.GUEST_RESCUE_BASE_PATH, api.GUEST_RESCUE_INITRAMFS),
-			fmt.Sprintf("%s/%s", api.GUEST_RESCUE_BASE_PATH, api.GUEST_RESCUE_KERNEL),
+			drvOpt,
+			path.Join(input.RescuePath, api.GUEST_RESCUE_INITRAMFS),
+			path.Join(input.RescuePath, api.GUEST_RESCUE_KERNEL),
+			path.Join(input.RescuePath, api.GUEST_RESCUE_SYS_DISK_NAME),
 		)...)
 	}
 
