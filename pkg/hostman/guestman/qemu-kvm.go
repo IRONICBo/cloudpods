@@ -29,14 +29,13 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-	"yunion.io/x/onecloud/pkg/baremetal"
-	"yunion.io/x/pkg/util/httputils"
-	"yunion.io/x/pkg/util/qemuimgfmt"
 
 	"yunion.io/x/jsonutils"
 	"yunion.io/x/log"
 	"yunion.io/x/pkg/appctx"
 	"yunion.io/x/pkg/errors"
+	"yunion.io/x/pkg/util/httputils"
+	"yunion.io/x/pkg/util/qemuimgfmt"
 	"yunion.io/x/pkg/util/regutils"
 	"yunion.io/x/pkg/util/seclib"
 	"yunion.io/x/pkg/util/version"
@@ -46,6 +45,7 @@ import (
 	api "yunion.io/x/onecloud/pkg/apis/compute"
 	hostapi "yunion.io/x/onecloud/pkg/apis/host"
 	noapi "yunion.io/x/onecloud/pkg/apis/notify"
+	"yunion.io/x/onecloud/pkg/baremetal"
 	o "yunion.io/x/onecloud/pkg/baremetal/options"
 	"yunion.io/x/onecloud/pkg/cloudcommon/consts"
 	"yunion.io/x/onecloud/pkg/cloudcommon/notifyclient"
@@ -768,7 +768,7 @@ func (s *SKVMGuestInstance) StartMonitorWithImportGuestSocketFile(ctx context.Co
 	mon = monitor.NewQmpMonitor(
 		s.GetName(),
 		s.Id,
-		s.onImportGuestMonitorDisConnect, // on monitor disconnect
+		s.onImportGuestMonitorDisConnect,                            // on monitor disconnect
 		func(err error) { s.onImportGuestMonitorTimeout(ctx, err) }, // on monitor timeout
 		func() {
 			s.Monitor = mon
@@ -776,7 +776,7 @@ func (s *SKVMGuestInstance) StartMonitorWithImportGuestSocketFile(ctx context.Co
 			if cb != nil {
 				cb()
 			}
-		}, // on monitor connected
+		},                   // on monitor connected
 		s.onReceiveQMPEvent, // on reveive qmp event
 	)
 	return mon.ConnectWithSocket(socketFile)

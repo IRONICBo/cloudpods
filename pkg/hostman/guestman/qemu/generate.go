@@ -221,7 +221,7 @@ func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img strin
 	// create temp disk info
 	driveString := fmt.Sprintf("file=%s,if=none,id=initrd,cache=none,aio=native,file.locking=off", sys_img)
 	opts = append(opts, drvOpt.Drive(driveString))
-	deviceString := fmt.Sprintf("virtio-blk-pci,drive=initrd,iothread=iothread0,id=initrd")
+	deviceString := fmt.Sprintf("virtio-blk-pci,drive=initrd,iothread=iothread0,id=initrd,bootindex=1")
 	opts = append(opts, drvOpt.Device(deviceString))
 
 	return opts

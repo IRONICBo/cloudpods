@@ -16,14 +16,15 @@ package models
 
 import (
 	"context"
-	"yunion.io/x/onecloud/pkg/cloudcommon/db"
-	"yunion.io/x/pkg/utils"
 
 	"yunion.io/x/jsonutils"
+	"yunion.io/x/pkg/errors"
+	"yunion.io/x/pkg/utils"
+
 	api "yunion.io/x/onecloud/pkg/apis/compute"
+	"yunion.io/x/onecloud/pkg/cloudcommon/db"
 	"yunion.io/x/onecloud/pkg/cloudcommon/db/taskman"
 	"yunion.io/x/onecloud/pkg/mcclient"
-	"yunion.io/x/pkg/errors"
 )
 
 func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
