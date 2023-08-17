@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -45,8 +46,6 @@ import (
 	api "yunion.io/x/onecloud/pkg/apis/compute"
 	hostapi "yunion.io/x/onecloud/pkg/apis/host"
 	noapi "yunion.io/x/onecloud/pkg/apis/notify"
-	"yunion.io/x/onecloud/pkg/baremetal"
-	o "yunion.io/x/onecloud/pkg/baremetal/options"
 	"yunion.io/x/onecloud/pkg/cloudcommon/consts"
 	"yunion.io/x/onecloud/pkg/cloudcommon/notifyclient"
 	"yunion.io/x/onecloud/pkg/hostman/guestman/arch"
@@ -768,7 +767,7 @@ func (s *SKVMGuestInstance) StartMonitorWithImportGuestSocketFile(ctx context.Co
 	mon = monitor.NewQmpMonitor(
 		s.GetName(),
 		s.Id,
-		s.onImportGuestMonitorDisConnect,                            // on monitor disconnect
+		s.onImportGuestMonitorDisConnect, // on monitor disconnect
 		func(err error) { s.onImportGuestMonitorTimeout(ctx, err) }, // on monitor timeout
 		func() {
 			s.Monitor = mon
@@ -776,7 +775,7 @@ func (s *SKVMGuestInstance) StartMonitorWithImportGuestSocketFile(ctx context.Co
 			if cb != nil {
 				cb()
 			}
-		},                   // on monitor connected
+		}, // on monitor connected
 		s.onReceiveQMPEvent, // on reveive qmp event
 	)
 	return mon.ConnectWithSocket(socketFile)
@@ -2993,7 +2992,7 @@ func (s *SKVMGuestInstance) prepareRescue(ctx context.Context) error {
 
 	// Create disk
 	diskPath := path.Join(s.GetRescueDirPath(), api.GUEST_RESCUE_SYS_DISK_NAME)
-	err := createTempDisk(diskPath, api.GUEST_RESCUE_SYS_DISK_SIZE, qemuimgfmt.QCOW2.String(), nil, "")
+	err := s.createTempDisk(diskPath, api.GUEST_RESCUE_SYS_DISK_SIZE, qemuimgfmt.QCOW2.String(), nil, "")
 	if err != nil {
 		return errors.Wrapf(err, "create disk %s failed", diskPath)
 	}
@@ -3024,7 +3023,7 @@ func (s *SKVMGuestInstance) downloadFromBaremetal(filename string) error {
 	defer file.Close()
 
 	// Get filepath
-	fileURL, err := getTftpFileUrl(filename)
+	fileURL, err := s.getTftpFileUrl(filename)
 	if err != nil {
 		return errors.Wrapf(err, "getTftpFileUrl")
 	}
@@ -3050,7 +3049,7 @@ func (s *SKVMGuestInstance) downloadFromBaremetal(filename string) error {
 	return nil
 }
 
-func createTempDisk(path string, sizeMB int, diskFormat string, encryptInfo *apis.SEncryptInfo, back string) error {
+func (s *SKVMGuestInstance) createTempDisk(path string, sizeMB int, diskFormat string, encryptInfo *apis.SEncryptInfo, back string) error {
 	if fileutils2.Exists(path) {
 		os.Remove(path)
 	}
@@ -3081,19 +3080,21 @@ func createTempDisk(path string, sizeMB int, diskFormat string, encryptInfo *api
 	return nil
 }
 
-func getTftpFileUrl(filename string) (string, error) {
-	endpoint, err := getTftpEndpoint()
+func (s *SKVMGuestInstance) getTftpFileUrl(filename string) (string, error) {
+	endpoint, err := s.getTftpEndpoint()
 	if err != nil {
 		log.Errorf("Get http file server endpoint: %v", err)
 		return filename, err
 	}
 	return fmt.Sprintf("http://%s/tftp/%s", endpoint, filename), nil
 }
-func getTftpEndpoint() (string, error) {
-	agent := baremetal.GetBaremetalAgent()
-	serverIP, err := agent.GetDHCPServerIP()
-	if err != nil {
-		return "", errors.Wrap(err, "GetDHCPServerIP")
+
+func (s *SKVMGuestInstance) getTftpEndpoint() (string, error) {
+	// TODO： Get baremetal agent ip and config port.
+	masterIP := s.manager.host.GetMasterIp()
+	if masterIP == "" {
+		return "", errors.Error("master ip is empty")
 	}
-	return fmt.Sprintf("%s:%d", serverIP, o.Options.Port+1000), nil
+
+	return net.JoinHostPort(masterIP, "9879"), nil
 }

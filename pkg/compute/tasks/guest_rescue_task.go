@@ -179,7 +179,7 @@ func (self *StopGuestRescueTask) ClearRescue(ctx context.Context, guest *models.
 func (self *StopGuestRescueTask) OnRescueClearComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
 	db.OpsLog.LogEvent(guest, db.ACT_RESCUE_STOP, guest.GetShortDesc(ctx), self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE_STOP, guest.GetShortDesc(ctx), self.UserCred, true)
-	guest.UpdateRescueMode(true)
+	guest.UpdateRescueMode(false)
 	self.RescueStartServer(ctx, guest)
 }
 
@@ -187,7 +187,7 @@ func (self *StopGuestRescueTask) OnRescueClearCompleteFailed(ctx context.Context
 	guest.SetStatus(self.UserCred, api.VM_RESCUE_FAILED, err.String())
 	db.OpsLog.LogEvent(guest, db.ACT_RESCUE_STOP_FAIL, err, self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE_STOP, err, self.UserCred, false)
-	guest.UpdateRescueMode(false)
+	//guest.UpdateRescueMode(false) Do not modify status
 	self.SetStageFailed(ctx, err)
 }
 
