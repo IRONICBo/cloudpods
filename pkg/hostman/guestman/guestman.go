@@ -899,8 +899,12 @@ func (m *SGuestManager) GuestStop(ctx context.Context, sid string, timeout int64
 }
 
 func (m *SGuestManager) GuestRescue(ctx context.Context, userCred mcclient.TokenCredential, sid string, body jsonutils.JSONObject) (jsonutils.JSONObject, error) {
+	baremetalManagerUri, err := body.GetString("manager_uri")
+	if err != nil {
+		return nil, httperrors.NewInputParameterError("manager_uri required")
+	}
 	if guest, ok := m.GetServer(sid); ok {
-		guest.ExecRescueTask(ctx, body)
+		guest.ExecRescueTask(ctx, baremetalManagerUri)
 		return nil, nil
 	} else {
 		return nil, httperrors.NewNotFoundError("Guest %s not found", sid)

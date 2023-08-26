@@ -104,18 +104,20 @@ func (s *SGuestStopTask) CheckGuestRunningLater() {
 // SGuestRescueStartTask Start a rescue vm
 type SGuestRescueStartTask struct {
 	*SKVMGuestInstance
-	ctx context.Context
+	ctx                 context.Context
+	BaremetalManagerUri string
 }
 
-func NewGuestRescueStartTask(guest *SKVMGuestInstance, ctx context.Context) *SGuestRescueStartTask {
+func NewGuestRescueStartTask(guest *SKVMGuestInstance, ctx context.Context, baremetalManagerUri string) *SGuestRescueStartTask {
 	return &SGuestRescueStartTask{
-		SKVMGuestInstance: guest,
-		ctx:               ctx,
+		SKVMGuestInstance:   guest,
+		ctx:                 ctx,
+		BaremetalManagerUri: baremetalManagerUri,
 	}
 }
 
 func (s *SGuestRescueStartTask) Start() {
-	if err := s.prepareRescue(s.ctx); err != nil {
+	if err := s.prepareRescue(s.ctx, s.BaremetalManagerUri); err != nil {
 		log.Errorf("prepareRescue fail %s", err)
 		hostutils.TaskFailed(s.ctx, err.Error())
 		return

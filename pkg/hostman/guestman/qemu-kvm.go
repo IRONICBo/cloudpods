@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"path"
@@ -1828,8 +1827,13 @@ func (s *SKVMGuestInstance) ExecStopTask(ctx context.Context, params interface{}
 	return nil, nil
 }
 
-func (s *SKVMGuestInstance) ExecRescueTask(ctx context.Context, params interface{}) {
-	NewGuestRescueStartTask(s, ctx).Start()
+func (s *SKVMGuestInstance) ExecRescueTask(ctx context.Context, params interface{}) (jsonutils.JSONObject, error) {
+	baremetalManagerUri, ok := params.(string)
+	if !ok {
+		return nil, hostutils.ParamsError
+	}
+	NewGuestRescueStartTask(s, ctx, baremetalManagerUri).Start()
+	return nil, nil
 }
 
 func (s *SKVMGuestInstance) ExecRescueStopTask(ctx context.Context, params interface{}) {
@@ -2970,21 +2974,23 @@ func (s *SKVMGuestInstance) clearRescue(ctx context.Context) error {
 	return nil
 }
 
-func (s *SKVMGuestInstance) prepareRescue(ctx context.Context) error {
+func (s *SKVMGuestInstance) prepareRescue(ctx context.Context, baremetalManagerUri string) error {
 	files := []string{
 		api.GUEST_RESCUE_INITRAMFS,
 		api.GUEST_RESCUE_KERNEL,
 	}
 
-	// TODO: Support arm
-	//if s.Desc.Arch == api.ARCH_ARM64 {
-	//	kernel = "kernel_aarch64"
-	//	initramfs = "initramfs_aarch64"
-	//}
+	// Support arm64
+	if s.manager.host.IsAarch64() {
+		files = []string{
+			api.GUEST_RESCUE_INITRAMFS_ARM64,
+			api.GUEST_RESCUE_KERNEL_ARM64,
+		}
+	}
 
 	// Prepare files
 	for _, file := range files {
-		err := s.downloadFromBaremetal(file)
+		err := s.downloadFromBaremetal(file, baremetalManagerUri)
 		if err != nil {
 			return errors.Wrapf(err, "download %s from baremetal failed", file)
 		}
@@ -3000,7 +3006,7 @@ func (s *SKVMGuestInstance) prepareRescue(ctx context.Context) error {
 	return nil
 }
 
-func (s *SKVMGuestInstance) downloadFromBaremetal(filename string) error {
+func (s *SKVMGuestInstance) downloadFromBaremetal(filename, baremetalManagerUri string) error {
 	rescueDir, err := s.CreateRescueDirPath()
 	if err != nil {
 		return errors.Wrap(err, "SKVMGuestInstance.GetRescueDirPath")
@@ -3023,7 +3029,7 @@ func (s *SKVMGuestInstance) downloadFromBaremetal(filename string) error {
 	defer file.Close()
 
 	// Get filepath
-	fileURL, err := s.getTftpFileUrl(filename)
+	fileURL, err := s.getTftpFileUrl(filename, baremetalManagerUri)
 	if err != nil {
 		return errors.Wrapf(err, "getTftpFileUrl")
 	}
@@ -3080,8 +3086,8 @@ func (s *SKVMGuestInstance) createTempDisk(path string, sizeMB int, diskFormat s
 	return nil
 }
 
-func (s *SKVMGuestInstance) getTftpFileUrl(filename string) (string, error) {
-	endpoint, err := s.getTftpEndpoint()
+func (s *SKVMGuestInstance) getTftpFileUrl(filename, baremetalManagerUri string) (string, error) {
+	endpoint, err := s.getTftpEndpoint(baremetalManagerUri)
 	if err != nil {
 		log.Errorf("Get http file server endpoint: %v", err)
 		return filename, err
@@ -3089,12 +3095,21 @@ func (s *SKVMGuestInstance) getTftpFileUrl(filename string) (string, error) {
 	return fmt.Sprintf("http://%s/tftp/%s", endpoint, filename), nil
 }
 
-func (s *SKVMGuestInstance) getTftpEndpoint() (string, error) {
-	// TODO： Get baremetal agent ip and config port.
-	masterIP := s.manager.host.GetMasterIp()
-	if masterIP == "" {
-		return "", errors.Error("master ip is empty")
+func (s *SKVMGuestInstance) getTftpEndpoint(baremetalManagerUri string) (string, error) {
+	// Split with :
+	addrs := strings.Split(baremetalManagerUri, ":")
+	if len(addrs) < 2 {
+		return "", errors.Errorf("baremetal manager uri is invalid")
 	}
 
-	return net.JoinHostPort(masterIP, "9879"), nil
+	// Plus baremetal agent port with 1000
+	port, err := strconv.Atoi(addrs[1])
+	if err != nil {
+		return "", errors.Wrapf(err, "convert port failed")
+	}
+
+	// Concat new endpoint url
+	endpoint := fmt.Sprintf("%s:%d", addrs[0], port+1000)
+
+	return endpoint, nil
 }

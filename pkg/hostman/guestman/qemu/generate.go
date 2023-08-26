@@ -16,8 +16,8 @@ package qemu
 
 import (
 	"fmt"
-	"path"
 	"strings"
+	"yunion.io/x/pkg/util/netutils"
 
 	"yunion.io/x/pkg/errors"
 	"yunion.io/x/pkg/utils"
@@ -213,7 +213,7 @@ func generateScsiOptions(scsi *desc.SGuestVirtioScsi) string {
 	return opt
 }
 
-func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img string) []string {
+func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img string, rescueDiskDeviceBus, rescueDiskDeviceSlot uint, nics []*desc.SGuestNetwork) []string {
 	opts := make([]string, 0)
 	opts = append(opts, fmt.Sprintf("-initrd %s", initrdPath))
 	opts = append(opts, fmt.Sprintf("-kernel %s", kernel))
@@ -221,9 +221,16 @@ func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img strin
 	// create temp disk info
 	driveString := fmt.Sprintf("file=%s,if=none,id=initrd,cache=none,aio=native,file.locking=off", sys_img)
 	opts = append(opts, drvOpt.Drive(driveString))
-	// TODO: Set default bus addr to 31(0x1f)
-	deviceString := fmt.Sprintf("virtio-blk-pci,drive=initrd,iothread=iothread0,bus=pci.0,addr=0x1f,id=initrd,bootindex=1")
+	// TODO: Check valid bus and slot
+	deviceString := fmt.Sprintf("virtio-blk-pci,drive=initrd,iothread=iothread0,bus=pci.%d,addr=0x%02x,id=initrd,bootindex=1", rescueDiskDeviceBus, rescueDiskDeviceSlot)
 	opts = append(opts, drvOpt.Device(deviceString))
+
+	// add ip config
+	var ips string
+	for _, nic := range nics {
+		ips += fmt.Sprintf("ip=%s:%s:%s:%s:%s:%s:off ", nic.Ip, "", nic.Gateway, netutils.Masklen2Mask(nic.Masklen).String(), "", nic.Ifname)
+	}
+	opts = append(opts, fmt.Sprintf("-append='%s'", ips))
 
 	return opts
 }
@@ -623,7 +630,11 @@ type GenerateStartOptionsInput struct {
 
 	EncryptKeyPath string
 
-	RescuePath string // rescue base path
+	RescueInitdPath      string // rescue initramfs path
+	RescueKernelPath     string // rescue kernel path
+	RescueDiskPath       string // rescue disk path
+	RescueDiskDeviceBus  uint
+	RescueDiskDeviceSlot uint
 }
 
 func (input *GenerateStartOptionsInput) HasBootIndex() bool {
@@ -748,12 +759,15 @@ func GenerateStartOptions(
 	}
 
 	// generate initrd and kernel options
-	if input.RescuePath != "" {
+	if input.RescueInitdPath != "" {
 		opts = append(opts, generateInitrdOptions(
 			drvOpt,
-			path.Join(input.RescuePath, api.GUEST_RESCUE_INITRAMFS),
-			path.Join(input.RescuePath, api.GUEST_RESCUE_KERNEL),
-			path.Join(input.RescuePath, api.GUEST_RESCUE_SYS_DISK_NAME),
+			input.RescueInitdPath,
+			input.RescueKernelPath,
+			input.RescueDiskPath,
+			input.RescueDiskDeviceBus,
+			input.RescueDiskDeviceSlot,
+			input.GuestDesc.Nics,
 		)...)
 	}
 

@@ -72,7 +72,7 @@ func (self *StartGuestRescueTask) PrepareRescue(ctx context.Context, guest *mode
 	self.SetStage("OnRescuePrepareComplete", nil)
 
 	host, _ := guest.GetHost()
-	err := guest.GetDriver().RequestGuestRescue(ctx, self, nil, host, guest)
+	err := guest.GetDriver().RequestGuestRescue(ctx, self, self.GetParams(), host, guest)
 	if err != nil {
 		self.OnRescuePrepareCompleteFailed(ctx, guest, jsonutils.NewString(err.Error()))
 		return

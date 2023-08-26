@@ -54,8 +54,22 @@ func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCr
 		}
 	}
 
+	// Get baremetal agent
+	host, err := self.GetHost()
+	if err != nil {
+		return nil, httperrors.NewInvalidStatusError("guest.GetHost: %s", err.Error())
+	}
+	bmAgent := BaremetalagentManager.GetAgent(api.AgentTypeBaremetal, host.ZoneId)
+	if bmAgent == nil {
+		return nil, httperrors.NewInvalidStatusError("BaremetalagentManager.GetAgent", "Baremetal agent not found")
+	}
+
+	// Set available baremetal agent managerURi to data
+	dataDict := data.(*jsonutils.JSONDict)
+	dataDict.Add(jsonutils.NewString(bmAgent.ManagerUri), "manager_uri")
+
 	// Start rescue vm task
-	err = self.StartGuestRescueTask(ctx, userCred, data.(*jsonutils.JSONDict), "")
+	err = self.StartGuestRescueTask(ctx, userCred, dataDict, "")
 	if err != nil {
 		return nil, httperrors.NewInvalidStatusError("guest.StartGuestRescueTask: %s", err.Error())
 	}
