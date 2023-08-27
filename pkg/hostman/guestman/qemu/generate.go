@@ -17,9 +17,9 @@ package qemu
 import (
 	"fmt"
 	"strings"
-	"yunion.io/x/pkg/util/netutils"
 
 	"yunion.io/x/pkg/errors"
+	"yunion.io/x/pkg/util/netutils"
 	"yunion.io/x/pkg/utils"
 
 	api "yunion.io/x/onecloud/pkg/apis/compute"
