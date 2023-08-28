@@ -61,7 +61,7 @@ func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCr
 	}
 	bmAgent := BaremetalagentManager.GetAgent(api.AgentTypeBaremetal, host.ZoneId)
 	if bmAgent == nil {
-		return nil, httperrors.NewInvalidStatusError("BaremetalagentManager.GetAgent", "Baremetal agent not found")
+		return nil, httperrors.NewInvalidStatusError("BaremetalagentManager.GetAgent: %s", "Baremetal agent not found")
 	}
 
 	// Set available baremetal agent managerURi to data
