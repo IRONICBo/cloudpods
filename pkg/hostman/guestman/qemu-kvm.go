@@ -3097,19 +3097,23 @@ func (s *SKVMGuestInstance) getTftpFileUrl(filename, baremetalManagerUri string)
 
 func (s *SKVMGuestInstance) getTftpEndpoint(baremetalManagerUri string) (string, error) {
 	// Split with :
-	addrs := strings.Split(baremetalManagerUri, ":")
+	addrs := strings.Split(baremetalManagerUri, "//")
 	if len(addrs) < 2 {
+		return "", errors.Errorf("baremetal manager uri is invalid")
+	}
+	endpoints := strings.Split(addrs[1], ":")
+	if len(endpoints) < 2 {
 		return "", errors.Errorf("baremetal manager uri is invalid")
 	}
 
 	// Plus baremetal agent port with 1000
-	port, err := strconv.Atoi(addrs[1])
+	port, err := strconv.Atoi(endpoints[1])
 	if err != nil {
 		return "", errors.Wrapf(err, "convert port failed")
 	}
 
 	// Concat new endpoint url
-	endpoint := fmt.Sprintf("%s:%d", addrs[0], port+1000)
+	endpoint := fmt.Sprintf("%s:%d", endpoints[0], port+1000)
 
 	return endpoint, nil
 }

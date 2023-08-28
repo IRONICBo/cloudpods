@@ -226,11 +226,13 @@ func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img strin
 	opts = append(opts, drvOpt.Device(deviceString))
 
 	// add ip config
-	var ips string
+	var ips []string
 	for _, nic := range nics {
-		ips += fmt.Sprintf("ip=%s:%s:%s:%s:%s:%s:off ", nic.Ip, "", nic.Gateway, netutils.Masklen2Mask(nic.Masklen).String(), "", nic.Ifname)
+		ips = append(ips, fmt.Sprintf("ip=%s:%s:%s:%s:%s:%s:off,", nic.Ip, "", nic.Gateway, netutils.Masklen2Mask(nic.Masklen).String(), "", nic.Ifname))
 	}
-	opts = append(opts, fmt.Sprintf("-append='%s'", ips))
+	appendIps := strings.Join(ips, ",")
+
+	opts = append(opts, fmt.Sprintf("-append %s", appendIps))
 
 	return opts
 }
