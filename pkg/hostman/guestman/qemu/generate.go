@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"yunion.io/x/pkg/errors"
-	"yunion.io/x/pkg/util/netutils"
 	"yunion.io/x/pkg/utils"
 
 	api "yunion.io/x/onecloud/pkg/apis/compute"
@@ -221,18 +220,17 @@ func generateInitrdOptions(drvOpt QemuOptions, initrdPath, kernel, sys_img strin
 	// create temp disk info
 	driveString := fmt.Sprintf("file=%s,if=none,id=initrd,cache=none,aio=native,file.locking=off", sys_img)
 	opts = append(opts, drvOpt.Drive(driveString))
-	// TODO: Check valid bus and slot
 	deviceString := fmt.Sprintf("virtio-blk-pci,drive=initrd,iothread=iothread0,bus=pci.%d,addr=0x%02x,id=initrd,bootindex=1", rescueDiskDeviceBus, rescueDiskDeviceSlot)
 	opts = append(opts, drvOpt.Device(deviceString))
 
 	// add ip config
-	var ips []string
-	for _, nic := range nics {
-		ips = append(ips, fmt.Sprintf("ip=%s:%s:%s:%s:%s:%s:off,", nic.Ip, "", nic.Gateway, netutils.Masklen2Mask(nic.Masklen).String(), "", nic.Ifname))
-	}
-	appendIps := strings.Join(ips, ",")
-
-	opts = append(opts, fmt.Sprintf("-append %s", appendIps))
+	//var ips []string
+	//for _, nic := range nics {
+	//	ips = append(ips, fmt.Sprintf("ip=%s:%s:%s:%s:%s:%s:off,", nic.Ip, "", nic.Gateway, netutils.Masklen2Mask(nic.Masklen).String(), "", nic.Ifname))
+	//}
+	//appendIps := strings.Join(ips, ",")
+	//
+	//opts = append(opts, fmt.Sprintf("-append %s", appendIps))
 
 	return opts
 }

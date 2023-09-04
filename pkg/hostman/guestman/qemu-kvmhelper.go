@@ -542,21 +542,11 @@ function nic_mtu() {
 
 	// set rescue flag to input
 	if s.Desc.RescueMode {
-		input.RescueInitdPath = path.Join(s.GetRescueDirPath(), api.GUEST_RESCUE_INITRAMFS)
-		input.RescueKernelPath = path.Join(s.GetRescueDirPath(), api.GUEST_RESCUE_KERNEL)
-		input.RescueDiskPath = path.Join(s.GetRescueDirPath(), api.GUEST_RESCUE_SYS_DISK_NAME)
-		if s.manager.GetHost().IsAarch64() {
-			input.RescueInitdPath = path.Join(s.GetRescueDirPath(), api.GUEST_RESCUE_INITRAMFS_ARM64)
-			input.RescueKernelPath = path.Join(s.GetRescueDirPath(), api.GUEST_RESCUE_KERNEL_ARM64)
-		}
-
-		// Address
-		bus, slot, found := s.findUnusedSlotForController(desc.CONTROLLER_TYPE_PCI_ROOT, 0)
-		if !found {
-			return cmd, errors.Errorf("no valid pci address found ?")
-		}
-		input.RescueDiskDeviceBus = uint(bus)
-		input.RescueDiskDeviceSlot = uint(slot)
+		input.RescueInitdPath = s.SourceDesc.RescueInitdPath
+		input.RescueKernelPath = s.SourceDesc.RescueKernelPath
+		input.RescueDiskPath = s.SourceDesc.RescueDiskPath
+		input.RescueDiskDeviceBus = s.SourceDesc.RescueDiskDeviceBus
+		input.RescueDiskDeviceSlot = s.SourceDesc.RescueDiskDeviceSlot
 	}
 
 	qemuOpts, err := qemu.GenerateStartOptions(input)
