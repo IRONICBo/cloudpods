@@ -947,18 +947,18 @@ func init() {
 		return nil
 	})
 
-	// ServerRescueOptions is used to start a rescue os.
-	type ServerRescueOptions struct {
+	// ServerStartRescueOptions is used to start a rescue os.
+	type ServerStartRescueOptions struct {
 		ID          string `help:"ID of server" json:"-"`
 		QemuVersion string `help:"prefer qemu version" json:"qemu_version"`
 	}
-	R(&ServerRescueOptions{}, "server-rescue", "Rescue a guest server", func(s *mcclient.ClientSession, opts *ServerRescueOptions) error {
+	R(&ServerStartRescueOptions{}, "server-start-rescue ", "Start rescu e a guest server", func(s *mcclient.ClientSession, opts *ServerStartRescueOptions) error {
 		params, err := baseoptions.StructToParams(opts)
 		if err != nil {
 			return err
 		}
 
-		result, err := modules.Servers.PerformAction(s, opts.ID, "rescue", params)
+		result, err := modules.Servers.PerformAction(s, opts.ID, "start-rescue", params)
 		if err != nil {
 			return err
 		}
@@ -968,18 +968,18 @@ func init() {
 		return nil
 	})
 
-	// ServerRescueStopOptions is used to stop a rescue os.
-	type ServerRescueStopOptions struct {
+	// ServerStopRescueOptions is used to stop a rescue os.
+	type ServerStopRescueOptions struct {
 		ID          string `help:"ID of server" json:"-"`
 		QemuVersion string `help:"prefer qemu version" json:"qemu_version"`
 	}
-	R(&ServerRescueStopOptions{}, "server-rescue-stop", "Stop rescue a guest server", func(s *mcclient.ClientSession, opts *ServerRescueStopOptions) error {
+	R(&ServerStopRescueOptions{}, "server-stop-rescue", "Stop rescue a guest server", func(s *mcclient.ClientSession, opts *ServerStopRescueOptions) error {
 		params, err := baseoptions.StructToParams(opts)
 		if err != nil {
 			return err
 		}
 
-		result, err := modules.Servers.PerformAction(s, opts.ID, "rescue-stop", params)
+		result, err := modules.Servers.PerformAction(s, opts.ID, "stop-rescue", params)
 		if err != nil {
 			return err
 		}

@@ -1088,10 +1088,10 @@ func (self *SKVMGuestDriver) FetchMonitorUrl(ctx context.Context, guest *models.
 	return self.SVirtualizedGuestDriver.FetchMonitorUrl(ctx, guest)
 }
 
-func (self *SKVMGuestDriver) RequestGuestRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
+func (self *SKVMGuestDriver) RequestStartRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
 	header := self.getTaskRequestHeader(task)
 	client := httputils.GetDefaultClient()
-	url := fmt.Sprintf("%s/servers/%s/guest-rescue", host.ManagerUri, guest.Id)
+	url := fmt.Sprintf("%s/servers/%s/start-rescue", host.ManagerUri, guest.Id)
 	_, _, err := httputils.JSONRequest(client, ctx, "POST", url, header, body, false)
 	if err != nil {
 		return err
@@ -1100,10 +1100,10 @@ func (self *SKVMGuestDriver) RequestGuestRescue(ctx context.Context, task taskma
 	return nil
 }
 
-func (self *SKVMGuestDriver) RequestGuestRescueStop(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
+func (self *SKVMGuestDriver) RequestStopRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
 	header := self.getTaskRequestHeader(task)
 	client := httputils.GetDefaultClient()
-	url := fmt.Sprintf("%s/servers/%s/guest-rescue-stop", host.ManagerUri, guest.Id)
+	url := fmt.Sprintf("%s/servers/%s/stop-rescue", host.ManagerUri, guest.Id)
 	_, _, err := httputils.JSONRequest(client, ctx, "POST", url, header, body, false)
 	if err != nil {
 		return err

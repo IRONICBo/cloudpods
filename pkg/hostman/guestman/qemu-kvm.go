@@ -392,11 +392,11 @@ func (s *SKVMGuestInstance) GetSourceDescFilePath() string {
 }
 
 func (s *SKVMGuestInstance) GetRescueDirPath() string {
-	return path.Join(s.HomeDir(), "rescue")
+	return path.Join(s.HomeDir(), api.GUEST_RESCUE_RELATIVE_PATH)
 }
 
 func (s *SKVMGuestInstance) CreateRescueDirPath() (string, error) {
-	rescueDir := path.Join(s.HomeDir(), "rescue")
+	rescueDir := path.Join(s.HomeDir(), api.GUEST_RESCUE_RELATIVE_PATH)
 
 	// Check if rescue dir exists
 	output, err := procutils.NewCommand("mkdir", "-p", rescueDir).Output()
@@ -1860,17 +1860,17 @@ func (s *SKVMGuestInstance) ExecStopTask(ctx context.Context, params interface{}
 	return nil, nil
 }
 
-func (s *SKVMGuestInstance) ExecRescueTask(ctx context.Context, params interface{}) (jsonutils.JSONObject, error) {
+func (s *SKVMGuestInstance) ExecStartRescueTask(ctx context.Context, params interface{}) (jsonutils.JSONObject, error) {
 	baremetalManagerUri, ok := params.(string)
 	if !ok {
 		return nil, hostutils.ParamsError
 	}
-	NewGuestRescueStartTask(s, ctx, baremetalManagerUri).Start()
+	NewGuestStartRescueTask(s, ctx, baremetalManagerUri).Start()
 	return nil, nil
 }
 
-func (s *SKVMGuestInstance) ExecRescueStopTask(ctx context.Context, params interface{}) {
-	NewGuestRescueStopTask(s, ctx).Start()
+func (s *SKVMGuestInstance) ExecStopRescueTask(ctx context.Context, params interface{}) {
+	NewGuestStopRescueTask(s, ctx).Start()
 }
 
 func (s *SKVMGuestInstance) ExecSuspendTask(ctx context.Context) {
@@ -3115,7 +3115,6 @@ func (s *SKVMGuestInstance) createTempDisk(path string, sizeMB int, diskFormat s
 		return errors.Wrapf(err, "create_raw: Fail to create disk")
 	}
 
-	// TODO: assign filesystem?
 	return nil
 }
 

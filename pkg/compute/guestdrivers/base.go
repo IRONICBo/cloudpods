@@ -517,10 +517,10 @@ func (self *SBaseGuestDriver) FetchMonitorUrl(ctx context.Context, guest *models
 	return influxdbUrl
 }
 
-func (self *SBaseGuestDriver) RequestGuestRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
+func (self *SBaseGuestDriver) RequestStartRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
 	return httperrors.ErrNotImplemented
 }
 
-func (self *SBaseGuestDriver) RequestGuestRescueStop(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
+func (self *SBaseGuestDriver) RequestStopRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {
 	return httperrors.ErrNotImplemented
 }

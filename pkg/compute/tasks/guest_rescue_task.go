@@ -26,15 +26,15 @@ import (
 	"yunion.io/x/onecloud/pkg/util/logclient"
 )
 
-type StartGuestRescueTask struct {
+type StartRescueTask struct {
 	SGuestBaseTask
 }
 
 func init() {
-	taskman.RegisterTask(StartGuestRescueTask{})
+	taskman.RegisterTask(StartRescueTask{})
 }
 
-func (self *StartGuestRescueTask) OnInit(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
+func (self *StartRescueTask) OnInit(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
 	// Flow: stop -> modify startvm script for rescue -> start
 	guest := obj.(*models.SGuest)
 	// Check if guest is running
@@ -45,57 +45,57 @@ func (self *StartGuestRescueTask) OnInit(ctx context.Context, obj db.IStandalone
 	}
 }
 
-func (self *StartGuestRescueTask) StopServer(ctx context.Context, guest *models.SGuest) {
+func (self *StartRescueTask) StopServer(ctx context.Context, guest *models.SGuest) {
 	db.OpsLog.LogEvent(guest, db.ACT_STOPPING, nil, self.UserCred)
-	guest.SetStatus(self.UserCred, api.VM_STOPPING, "")
+	guest.SetStatus(self.UserCred, api.VM_STOPPING, "StopServer")
 	self.SetStage("OnServerStopComplete", nil)
 	guest.StartGuestStopTask(ctx, self.UserCred, true, false, self.GetTaskId())
 }
 
-func (self *StartGuestRescueTask) OnServerStopComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+func (self *StartRescueTask) OnServerStopComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
 	db.OpsLog.LogEvent(guest, db.ACT_STOP, guest.GetShortDesc(ctx), self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, guest.GetShortDesc(ctx), self.UserCred, true)
 
 	self.PrepareRescue(ctx, guest)
 }
 
-func (self *StartGuestRescueTask) OnServerStopCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
+func (self *StartRescueTask) OnServerStopCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
 	guest.SetStatus(self.UserCred, api.VM_STOP_FAILED, err.String())
 	db.OpsLog.LogEvent(guest, db.ACT_STOP_FAIL, err, self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, err, self.UserCred, false)
 	self.SetStageFailed(ctx, err)
 }
 
-func (self *StartGuestRescueTask) PrepareRescue(ctx context.Context, guest *models.SGuest) {
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUING, nil, self.UserCred)
-	guest.SetStatus(self.UserCred, api.VM_START_RESCUE, "")
+func (self *StartRescueTask) PrepareRescue(ctx context.Context, guest *models.SGuest) {
+	db.OpsLog.LogEvent(guest, db.ACT_START_RESCUE, nil, self.UserCred)
+	guest.SetStatus(self.UserCred, api.VM_START_RESCUE, "PrepareRescue")
 	self.SetStage("OnRescuePrepareComplete", nil)
 
 	host, _ := guest.GetHost()
-	err := guest.GetDriver().RequestGuestRescue(ctx, self, self.GetParams(), host, guest)
+	err := guest.GetDriver().RequestStartRescue(ctx, self, self.GetParams(), host, guest)
 	if err != nil {
 		self.OnRescuePrepareCompleteFailed(ctx, guest, jsonutils.NewString(err.Error()))
 		return
 	}
 }
 
-func (self *StartGuestRescueTask) OnRescuePrepareComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUING, guest.GetShortDesc(ctx), self.UserCred)
-	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
+func (self *StartRescueTask) OnRescuePrepareComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+	db.OpsLog.LogEvent(guest, db.ACT_START_RESCUE, guest.GetShortDesc(ctx), self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
 	guest.UpdateRescueMode(true)
 	self.RescueStartServer(ctx, guest)
 }
 
-func (self *StartGuestRescueTask) OnRescuePrepareCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
-	guest.SetStatus(self.UserCred, api.VM_RESCUE_FAILED, err.String())
+func (self *StartRescueTask) OnRescuePrepareCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
+	guest.SetStatus(self.UserCred, api.VM_START_RESCUE_FAILED, err.String())
 	db.OpsLog.LogEvent(guest, db.ACT_STOP_FAIL, err, self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, err, self.UserCred, false)
 	guest.UpdateRescueMode(false)
 	self.SetStageFailed(ctx, err)
 }
 
-func (self *StartGuestRescueTask) RescueStartServer(ctx context.Context, guest *models.SGuest) {
-	guest.SetStatus(self.UserCred, api.VM_START_RESCUE, "")
+func (self *StartRescueTask) RescueStartServer(ctx context.Context, guest *models.SGuest) {
+	guest.SetStatus(self.UserCred, api.VM_START_RESCUE, "RescueStartServer")
 	self.SetStage("OnRescueStartServerComplete", nil)
 
 	// Set Guest rescue params to guest start params
@@ -107,92 +107,91 @@ func (self *StartGuestRescueTask) RescueStartServer(ctx context.Context, guest *
 	}
 }
 
-func (self *StartGuestRescueTask) OnRescueStartServerComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUE, guest.GetShortDesc(ctx), self.UserCred)
-	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
+func (self *StartRescueTask) OnRescueStartServerComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+	db.OpsLog.LogEvent(guest, db.ACT_START_RESCUE, guest.GetShortDesc(ctx), self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
 
 	// Set guest status to rescue running
-	guest.SetStatus(self.UserCred, api.VM_RESCUE_RUNNING, "")
+	guest.SetStatus(self.UserCred, api.VM_RESCUING, "OnRescueStartServerComplete")
 	self.SetStageComplete(ctx, nil)
 }
 
-func (self *StartGuestRescueTask) OnRescueStartServerCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
+func (self *StartRescueTask) OnRescueStartServerCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
 	guest := obj.(*models.SGuest)
-	guest.SetStatus(self.UserCred, api.VM_RESCUE_FAILED, err.String())
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUE_FAIL, guest.GetShortDesc(ctx), self.UserCred)
+	guest.SetStatus(self.UserCred, api.VM_START_RESCUE_FAILED, err.String())
+	db.OpsLog.LogEvent(guest, db.ACT_START_RESCUE_FAILED, guest.GetShortDesc(ctx), self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START, guest.GetShortDesc(ctx), self.UserCred, true)
 }
 
-type StopGuestRescueTask struct {
+type StopRescueTask struct {
 	SGuestBaseTask
 }
 
 func init() {
-	taskman.RegisterTask(StopGuestRescueTask{})
+	taskman.RegisterTask(StopRescueTask{})
 }
 
-func (self *StopGuestRescueTask) OnInit(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
+func (self *StopRescueTask) OnInit(ctx context.Context, obj db.IStandaloneModel, data jsonutils.JSONObject) {
 	// Flow: stop -> modify startvm script for rescue -> start
 	guest := obj.(*models.SGuest)
 	// Check if guest is running
-	if guest.Status == api.VM_RUNNING {
+	if guest.Status == api.VM_RUNNING || guest.Status == api.VM_RESCUING {
 		self.StopServer(ctx, guest)
 	} else {
 		self.ClearRescue(ctx, guest)
 	}
 }
 
-func (self *StopGuestRescueTask) StopServer(ctx context.Context, guest *models.SGuest) {
+func (self *StopRescueTask) StopServer(ctx context.Context, guest *models.SGuest) {
 	db.OpsLog.LogEvent(guest, db.ACT_STOPPING, nil, self.UserCred)
-	guest.SetStatus(self.UserCred, api.VM_STOPPING, "")
+	guest.SetStatus(self.UserCred, api.VM_STOPPING, "StopServer")
 	self.SetStage("OnServerStopComplete", nil)
 	guest.StartGuestStopTask(ctx, self.UserCred, true, false, self.GetTaskId())
 }
 
-func (self *StopGuestRescueTask) OnServerStopComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+func (self *StopRescueTask) OnServerStopComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
 	db.OpsLog.LogEvent(guest, db.ACT_STOP, guest.GetShortDesc(ctx), self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, guest.GetShortDesc(ctx), self.UserCred, true)
 
 	self.ClearRescue(ctx, guest)
 }
 
-func (self *StopGuestRescueTask) OnServerStopCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
+func (self *StopRescueTask) OnServerStopCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
 	guest.SetStatus(self.UserCred, api.VM_STOP_FAILED, err.String())
 	db.OpsLog.LogEvent(guest, db.ACT_STOP_FAIL, err, self.UserCred)
 	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP, err, self.UserCred, false)
 	self.SetStageFailed(ctx, err)
 }
 
-func (self *StopGuestRescueTask) ClearRescue(ctx context.Context, guest *models.SGuest) {
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUING, nil, self.UserCred)
-	guest.SetStatus(self.UserCred, api.VM_STOP_RESCUE, "")
+func (self *StopRescueTask) ClearRescue(ctx context.Context, guest *models.SGuest) {
+	db.OpsLog.LogEvent(guest, db.ACT_STOP_RESCUE, nil, self.UserCred)
+	guest.SetStatus(self.UserCred, api.VM_STOP_RESCUE, "ClearRescue")
 	self.SetStage("OnRescueClearComplete", nil)
 
 	host, _ := guest.GetHost()
-	err := guest.GetDriver().RequestGuestRescueStop(ctx, self, nil, host, guest)
+	err := guest.GetDriver().RequestStopRescue(ctx, self, nil, host, guest)
 	if err != nil {
 		self.OnRescueClearCompleteFailed(ctx, guest, jsonutils.NewString(err.Error()))
 		return
 	}
 }
 
-func (self *StopGuestRescueTask) OnRescueClearComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUE_STOP, guest.GetShortDesc(ctx), self.UserCred)
-	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE_STOP, guest.GetShortDesc(ctx), self.UserCred, true)
+func (self *StopRescueTask) OnRescueClearComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+	db.OpsLog.LogEvent(guest, db.ACT_STOP_RESCUE, guest.GetShortDesc(ctx), self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
 	guest.UpdateRescueMode(false)
 	self.RescueStartServer(ctx, guest)
 }
 
-func (self *StopGuestRescueTask) OnRescueClearCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
-	guest.SetStatus(self.UserCred, api.VM_RESCUE_FAILED, err.String())
-	db.OpsLog.LogEvent(guest, db.ACT_RESCUE_STOP_FAIL, err, self.UserCred)
-	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE_STOP, err, self.UserCred, false)
-	//guest.UpdateRescueMode(false) Do not modify status
+func (self *StopRescueTask) OnRescueClearCompleteFailed(ctx context.Context, guest *models.SGuest, err jsonutils.JSONObject) {
+	guest.SetStatus(self.UserCred, api.VM_STOP_RESCUE_FAILED, err.String())
+	db.OpsLog.LogEvent(guest, db.ACT_STOP_RESCUE_FAILED, err, self.UserCred)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_STOP_RESCUE, err, self.UserCred, false)
 	self.SetStageFailed(ctx, err)
 }
 
-func (self *StopGuestRescueTask) RescueStartServer(ctx context.Context, guest *models.SGuest) {
-	guest.SetStatus(self.UserCred, api.VM_STARTING, "")
+func (self *StopRescueTask) RescueStartServer(ctx context.Context, guest *models.SGuest) {
+	guest.SetStatus(self.UserCred, api.VM_STARTING, "RescueStartServer")
 	self.SetStage("OnRescueStartServerComplete", nil)
 
 	// Set Guest rescue params to guest start params
@@ -204,16 +203,16 @@ func (self *StopGuestRescueTask) RescueStartServer(ctx context.Context, guest *m
 	}
 }
 
-func (self *StopGuestRescueTask) OnRescueStartServerComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
+func (self *StopRescueTask) OnRescueStartServerComplete(ctx context.Context, guest *models.SGuest, data jsonutils.JSONObject) {
 	db.OpsLog.LogEvent(guest, db.ACT_START, guest.GetShortDesc(ctx), self.UserCred)
-	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_RESCUE, guest.GetShortDesc(ctx), self.UserCred, true)
+	logclient.AddActionLogWithStartable(self, guest, logclient.ACT_VM_START, guest.GetShortDesc(ctx), self.UserCred, true)
 
 	// Set guest status to rescue running
-	guest.SetStatus(self.UserCred, api.VM_STARTING, "")
+	guest.SetStatus(self.UserCred, api.VM_RUNNING, "OnRescueStartServerComplete")
 	self.SetStageComplete(ctx, nil)
 }
 
-func (self *StopGuestRescueTask) OnRescueStartServerCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
+func (self *StopRescueTask) OnRescueStartServerCompleteFailed(ctx context.Context, obj db.IStandaloneModel, err jsonutils.JSONObject) {
 	guest := obj.(*models.SGuest)
 	guest.SetStatus(self.UserCred, api.VM_START_FAILED, err.String())
 	db.OpsLog.LogEvent(guest, db.ACT_START_FAIL, guest.GetShortDesc(ctx), self.UserCred)

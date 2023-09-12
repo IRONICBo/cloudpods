@@ -28,7 +28,7 @@ import (
 	"yunion.io/x/onecloud/pkg/mcclient"
 )
 
-func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
+func (self *SGuest) PerformStartRescue(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
 	data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
 	if !utils.IsInStringArray(self.Status, []string{api.VM_READY, api.VM_RUNNING}) {
 		return nil, httperrors.NewInvalidStatusError("guest status must be ready or running")
@@ -69,7 +69,7 @@ func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCr
 	dataDict.Add(jsonutils.NewString(bmAgent.ManagerUri), "manager_uri")
 
 	// Start rescue vm task
-	err = self.StartGuestRescueTask(ctx, userCred, dataDict, "")
+	err = self.StartRescueTask(ctx, userCred, dataDict, "")
 	if err != nil {
 		return nil, httperrors.NewInvalidStatusError("guest.StartGuestRescueTask: %s", err.Error())
 	}
@@ -78,7 +78,7 @@ func (self *SGuest) PerformRescue(ctx context.Context, userCred mcclient.TokenCr
 	return nil, nil
 }
 
-func (self *SGuest) PerformRescueStop(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
+func (self *SGuest) PerformStopRescue(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
 	data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
 	if !self.RescueMode {
 		return nil, httperrors.NewInvalidStatusError("guest is not in rescue mode")
@@ -100,7 +100,7 @@ func (self *SGuest) PerformRescueStop(ctx context.Context, userCred mcclient.Tok
 	}
 
 	// Start rescue vm task
-	err = self.StopGuestRescueTask(ctx, userCred, data.(*jsonutils.JSONDict), "")
+	err = self.StopRescueTask(ctx, userCred, data.(*jsonutils.JSONDict), "")
 	if err != nil {
 		return nil, httperrors.NewInvalidStatusError("guest.StopGuestRescueTask: %s", err.Error())
 	}
@@ -120,9 +120,9 @@ func (self *SGuest) UpdateRescueMode(mode bool) error {
 	return nil
 }
 
-func (self *SGuest) StartGuestRescueTask(ctx context.Context, userCred mcclient.TokenCredential, data *jsonutils.JSONDict, parentTaskId string) error {
+func (self *SGuest) StartRescueTask(ctx context.Context, userCred mcclient.TokenCredential, data *jsonutils.JSONDict, parentTaskId string) error {
 	// Now only support KVM
-	taskName := "StartGuestRescueTask"
+	taskName := "StartRescueTask"
 	task, err := taskman.TaskManager.NewTask(ctx, taskName, self, userCred, data, parentTaskId, "", nil)
 	if err != nil {
 		return err
@@ -134,8 +134,8 @@ func (self *SGuest) StartGuestRescueTask(ctx context.Context, userCred mcclient.
 	return nil
 }
 
-func (self *SGuest) StopGuestRescueTask(ctx context.Context, userCred mcclient.TokenCredential, data *jsonutils.JSONDict, parentTaskId string) error {
-	taskName := "StopGuestRescueTask"
+func (self *SGuest) StopRescueTask(ctx context.Context, userCred mcclient.TokenCredential, data *jsonutils.JSONDict, parentTaskId string) error {
+	taskName := "StopRescueTask"
 	task, err := taskman.TaskManager.NewTask(ctx, taskName, self, userCred, data, parentTaskId, "", nil)
 	if err != nil {
 		return err
