@@ -340,6 +340,11 @@ func (self *SHuaweiClient) vpcCreate(regionId, resource string, params map[strin
 	return self.request(httputils.POST, uri, url.Values{}, params)
 }
 
+func (self *SHuaweiClient) vpcPost(regionId, resource string, params map[string]interface{}) (jsonutils.JSONObject, error) {
+	uri := fmt.Sprintf("https://vpc.%s.myhuaweicloud.com/v1/%s/%s", regionId, self.projectId, resource)
+	return self.request(httputils.POST, uri, url.Values{}, params)
+}
+
 func (self *SHuaweiClient) vpcGet(regionId, resource string) (jsonutils.JSONObject, error) {
 	uri := fmt.Sprintf("https://vpc.%s.myhuaweicloud.com/v1/%s/%s", regionId, self.projectId, resource)
 	return self.request(httputils.GET, uri, url.Values{}, nil)
@@ -581,8 +586,18 @@ func (self *SHuaweiClient) GetSubAccounts() ([]cloudprovider.SSubAccount, error)
 	subAccounts := make([]cloudprovider.SSubAccount, 0)
 	for i := range projects {
 		project := projects[i]
-		// name 为MOS的project是华为云内部的一个特殊project。不需要同步到本地
-		if strings.ToLower(project.Name) == "mos" {
+
+		find := false
+		for j := range self.iregions {
+			region := self.iregions[j].(*SRegion)
+			if strings.Contains(project.Name, region.ID) {
+				find = true
+				break
+			}
+		}
+		if !find {
+			// name 为MOS的project是华为云内部的一个特殊project。不需要同步到本地
+			// skip invalid project
 			continue
 		}
 		// https://www.huaweicloud.com/notice/2018/20190618171312411.html
@@ -880,4 +895,16 @@ func (self *SHuaweiClient) patchRequest(method httputils.THttpMethod, url string
 		return nil, err
 	}
 	return respValue, err
+}
+
+func (self *SHuaweiClient) dbinstanceSetName(instanceId string, params map[string]interface{}) error {
+	uri := fmt.Sprintf("https://rds.%s.myhuaweicloud.com/v3/%s/instances/%s/name", self.clientRegion, self.projectId, instanceId)
+	_, err := self.request(httputils.PUT, uri, nil, params)
+	return err
+}
+
+func (self *SHuaweiClient) dbinstanceSetDesc(instanceId string, params map[string]interface{}) error {
+	uri := fmt.Sprintf("https://rds.%s.myhuaweicloud.com/v3/%s/instances/%s/alias", self.clientRegion, self.projectId, instanceId)
+	_, err := self.request(httputils.PUT, uri, nil, params)
+	return err
 }

@@ -188,12 +188,15 @@ func (f *SLocalGuestFS) Stat(usrDir string, caseInsensitive bool) os.FileInfo {
 }
 
 func (f *SLocalGuestFS) Symlink(src string, dst string, caseInsensitive bool) error {
-	dir := path.Dir(src)
-	if err := f.Mkdir(path.Dir(src), 0755, caseInsensitive); err != nil {
+	dir := path.Dir(dst)
+	if err := f.Mkdir(dir, 0755, caseInsensitive); err != nil {
 		return errors.Wrapf(err, "Mkdir %s", dir)
 	}
-	src = f.GetLocalPath(src, caseInsensitive)
-	dst = f.GetLocalPath(dst, caseInsensitive)
+	if f.Exists(dst, caseInsensitive) {
+		f.Remove(dst, caseInsensitive)
+	}
+	dir = f.GetLocalPath(dir, caseInsensitive)
+	dst = path.Join(dir, path.Base(dst))
 	return os.Symlink(src, dst)
 }
 
@@ -307,16 +310,19 @@ func (f *SLocalGuestFS) FilePutContents(sPath, content string, modAppend, caseIn
 	if len(sPath) > 0 {
 		return fileutils2.FilePutContents(sPath, content, modAppend)
 	} else {
-		return fmt.Errorf("Cann't put content")
+		return fmt.Errorf("Can't put content to empty Path")
 	}
 }
 
 func (f *SLocalGuestFS) GenerateSshHostKeys() error {
-	cmd := []string{"chroot", f.mountPath, "ssh-keygen", "-A"}
-	output, err := procutils.NewCommand(cmd[0], cmd[1:]...).Output()
-	if err != nil {
-		log.Errorf("ssh-keygen host keys fail: %s, %s", err, output)
-		return fmt.Errorf("%s", output)
+	for _, cmd := range [][]string{
+		{f.mountPath, "touch", "/dev/null"},
+		{f.mountPath, "/usr/bin/ssh-keygen", "-A"},
+	} {
+		output, err := procutils.NewCommand("chroot", cmd...).Output()
+		if err != nil {
+			return errors.Wrapf(err, "GenerateSshHostKeys %s %s", strings.Join(cmd, " "), output)
+		}
 	}
 	return nil
 }

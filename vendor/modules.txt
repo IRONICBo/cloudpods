@@ -204,7 +204,6 @@ github.com/aws/aws-sdk-go/internal/strings
 github.com/aws/aws-sdk-go/internal/sync/singleflight
 github.com/aws/aws-sdk-go/private/checksum
 github.com/aws/aws-sdk-go/private/protocol
-github.com/aws/aws-sdk-go/private/protocol/ec2query
 github.com/aws/aws-sdk-go/private/protocol/eventstream
 github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
 github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
@@ -215,15 +214,9 @@ github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/restjson
 github.com/aws/aws-sdk-go/private/protocol/restxml
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
-github.com/aws/aws-sdk-go/service/acm
 github.com/aws/aws-sdk-go/service/cloudtrail
-github.com/aws/aws-sdk-go/service/ec2
-github.com/aws/aws-sdk-go/service/elbv2
-github.com/aws/aws-sdk-go/service/iam
 github.com/aws/aws-sdk-go/service/organizations
-github.com/aws/aws-sdk-go/service/pricing
 github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi
-github.com/aws/aws-sdk-go/service/route53
 github.com/aws/aws-sdk-go/service/s3
 github.com/aws/aws-sdk-go/service/sso
 github.com/aws/aws-sdk-go/service/sso/ssoiface
@@ -1439,7 +1432,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# yunion.io/x/cloudmux v0.3.10-0-alpha.1.0.20230728032735-a478fc65fa32
+# yunion.io/x/cloudmux v0.3.10-0-alpha.1.0.20230922055518-0b8dd444c8bf
 ## explicit; go 1.18
 yunion.io/x/cloudmux/pkg/apis
 yunion.io/x/cloudmux/pkg/apis/billing
@@ -1457,10 +1450,14 @@ yunion.io/x/cloudmux/pkg/multicloud/azure
 yunion.io/x/cloudmux/pkg/multicloud/azure/concurrent
 yunion.io/x/cloudmux/pkg/multicloud/azure/progress
 yunion.io/x/cloudmux/pkg/multicloud/azure/provider
+yunion.io/x/cloudmux/pkg/multicloud/baidu
+yunion.io/x/cloudmux/pkg/multicloud/baidu/provider
 yunion.io/x/cloudmux/pkg/multicloud/bingocloud
 yunion.io/x/cloudmux/pkg/multicloud/bingocloud/provider
 yunion.io/x/cloudmux/pkg/multicloud/ctyun
 yunion.io/x/cloudmux/pkg/multicloud/ctyun/provider
+yunion.io/x/cloudmux/pkg/multicloud/cucloud
+yunion.io/x/cloudmux/pkg/multicloud/cucloud/provider
 yunion.io/x/cloudmux/pkg/multicloud/ecloud
 yunion.io/x/cloudmux/pkg/multicloud/ecloud/provider
 yunion.io/x/cloudmux/pkg/multicloud/esxi
@@ -1491,6 +1488,8 @@ yunion.io/x/cloudmux/pkg/multicloud/huawei/obs
 yunion.io/x/cloudmux/pkg/multicloud/huawei/provider
 yunion.io/x/cloudmux/pkg/multicloud/jdcloud
 yunion.io/x/cloudmux/pkg/multicloud/jdcloud/provider
+yunion.io/x/cloudmux/pkg/multicloud/ksyun
+yunion.io/x/cloudmux/pkg/multicloud/ksyun/provider
 yunion.io/x/cloudmux/pkg/multicloud/loader
 yunion.io/x/cloudmux/pkg/multicloud/nutanix
 yunion.io/x/cloudmux/pkg/multicloud/nutanix/provider
@@ -1507,6 +1506,8 @@ yunion.io/x/cloudmux/pkg/multicloud/proxmox
 yunion.io/x/cloudmux/pkg/multicloud/proxmox/provider
 yunion.io/x/cloudmux/pkg/multicloud/qcloud
 yunion.io/x/cloudmux/pkg/multicloud/qcloud/provider
+yunion.io/x/cloudmux/pkg/multicloud/qingcloud
+yunion.io/x/cloudmux/pkg/multicloud/qingcloud/provider
 yunion.io/x/cloudmux/pkg/multicloud/remotefile
 yunion.io/x/cloudmux/pkg/multicloud/remotefile/provider
 yunion.io/x/cloudmux/pkg/multicloud/ucloud
@@ -1530,7 +1531,7 @@ yunion.io/x/log/hooks
 yunion.io/x/ovsdb/cli_util
 yunion.io/x/ovsdb/schema/ovn_nb
 yunion.io/x/ovsdb/types
-# yunion.io/x/pkg v1.0.1-0.20230711090507-0aafe0f0c9db
+# yunion.io/x/pkg v1.0.1-0.20230912084455-1393f31347db
 ## explicit; go 1.18
 yunion.io/x/pkg/appctx
 yunion.io/x/pkg/errors
@@ -1585,7 +1586,7 @@ yunion.io/x/pkg/utils
 # yunion.io/x/s3cli v0.0.0-20190917004522-13ac36d8687e
 ## explicit; go 1.12
 yunion.io/x/s3cli
-# yunion.io/x/sqlchemy v1.1.2-0.20230712025503-b1892bc5944c
+# yunion.io/x/sqlchemy v1.1.2-0.20230823191329-dc02ac3a547c
 ## explicit; go 1.17
 yunion.io/x/sqlchemy
 yunion.io/x/sqlchemy/backends

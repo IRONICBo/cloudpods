@@ -35,6 +35,7 @@ import (
 
 	"yunion.io/x/onecloud/pkg/apis"
 	api "yunion.io/x/onecloud/pkg/apis/compute"
+	"yunion.io/x/onecloud/pkg/cloudcommon/consts"
 	"yunion.io/x/onecloud/pkg/cloudcommon/types"
 	deployapi "yunion.io/x/onecloud/pkg/hostman/hostdeployer/apis"
 	"yunion.io/x/onecloud/pkg/util/coreosutils"
@@ -77,6 +78,35 @@ func getHostname(hostname, domain string) string {
 	} else {
 		return hostname
 	}
+}
+
+func (l *sLinuxRootFs) DeployQgaBlackList(rootFs IDiskPartition) error {
+	etcSysconfigQemuga := "/etc/sysconfig/qemu-ga"
+	blackListContent := `# This is a systemd environment file, not a shell script.
+# It provides settings for \"/lib/systemd/system/qemu-guest-agent.service\".
+
+# Comma-separated blacklist of RPCs to disable, or empty list to enable all.
+#
+# You can get the list of RPC commands using \"qemu-ga --blacklist='?'\".
+# There should be no spaces between commas and commands in the blacklist.
+# BLACKLIST_RPC=guest-file-open,guest-file-close,guest-file-read,guest-file-write,guest-file-seek,guest-file-flush,guest-exec,guest-exec-status
+
+# Fsfreeze hook script specification.
+#
+# FSFREEZE_HOOK_PATHNAME=/dev/null           : disables the feature.
+#
+# FSFREEZE_HOOK_PATHNAME=/path/to/executable : enables the feature with the
+# specified binary or shell script.
+#
+# FSFREEZE_HOOK_PATHNAME=                    : enables the feature with the
+# default value (invoke \"qemu-ga --help\" to interrogate).
+FSFREEZE_HOOK_PATHNAME=/etc/qemu-ga/fsfreeze-hook"
+`
+
+	if err := rootFs.FilePutContents(etcSysconfigQemuga, blackListContent, false, false); err != nil {
+		return errors.Wrap(err, "etcSysconfigQemuga error")
+	}
+	return nil
 }
 
 func (l *sLinuxRootFs) DeployHosts(rootFs IDiskPartition, hostname, domain string, ips []string) error {
@@ -159,8 +189,41 @@ func (l *sLinuxRootFs) DeployPublicKey(rootFs IDiskPartition, selUsr string, pub
 	return DeployAuthorizedKeys(rootFs, usrDir, pubkeys, false)
 }
 
+func (d *SCoreOsRootFs) DeployQgaBlackList(rootFs IDiskPartition) error {
+	etcSysconfigQemuga := "/etc/sysconfig/qemu-ga"
+	blackListContent := `# This is a systemd environment file, not a shell script.
+# It provides settings for \"/lib/systemd/system/qemu-guest-agent.service\".
+
+# Comma-separated blacklist of RPCs to disable, or empty list to enable all.
+#
+# You can get the list of RPC commands using \"qemu-ga --blacklist='?'\".
+# There should be no spaces between commas and commands in the blacklist.
+# BLACKLIST_RPC=guest-file-open,guest-file-close,guest-file-read,guest-file-write,guest-file-seek,guest-file-flush,guest-exec,guest-exec-status
+
+# Fsfreeze hook script specification.
+#
+# FSFREEZE_HOOK_PATHNAME=/dev/null           : disables the feature.
+#
+# FSFREEZE_HOOK_PATHNAME=/path/to/executable : enables the feature with the
+# specified binary or shell script.
+#
+# FSFREEZE_HOOK_PATHNAME=                    : enables the feature with the
+# default value (invoke \"qemu-ga --help\" to interrogate).
+FSFREEZE_HOOK_PATHNAME=/etc/qemu-ga/fsfreeze-hook"
+`
+
+	if rootFs.Exists(etcSysconfigQemuga, false) {
+		if err := rootFs.FilePutContents(etcSysconfigQemuga, blackListContent, false, false); err != nil {
+			return errors.Wrap(err, "etcSysconfigQemuga error")
+		}
+	}
+	return nil
+}
+
 func (l *sLinuxRootFs) DeployYunionroot(rootFs IDiskPartition, pubkeys *deployapi.SSHKeys, isInit, enableCloudInit bool) error {
-	l.DisableSelinux(rootFs)
+	if !consts.AllowVmSELinux() {
+		l.DisableSelinux(rootFs)
+	}
 	if !enableCloudInit && isInit {
 		l.DisableCloudinit(rootFs)
 	}
@@ -313,7 +376,7 @@ func (l *sLinuxRootFs) DeployNetworkingScripts(rootFs IDiskPartition, nics []*ty
 	}
 	// deploy docker mtu
 	{
-		minMtu := -1
+		minMtu := int16(-1)
 		for _, nic := range nics {
 			if nic.Mtu > 0 && (minMtu > nic.Mtu || minMtu < 0) {
 				minMtu = nic.Mtu
@@ -565,9 +628,6 @@ func (l *sLinuxRootFs) enableSerialConsoleSystemd(rootFs IDiskPartition) error {
 			log.Errorf("Enable %s root login: %v", tty, err)
 		}
 		sPath := fmt.Sprintf("/etc/systemd/system/getty.target.wants/getty@%s.service", tty)
-		if rootFs.Exists(sPath, false) {
-			rootFs.Remove(sPath, false)
-		}
 		if err := rootFs.Symlink("/usr/lib/systemd/system/getty@.service", sPath, false); err != nil {
 			return errors.Wrapf(err, "Symbol link tty %s", tty)
 		}
@@ -744,7 +804,7 @@ func (d *sDebianLikeRootFs) GetReleaseInfo(rootFs IDiskPartition, driver IDebian
 
 func (d *sDebianLikeRootFs) RootSignatures() []string {
 	sig := d.sLinuxRootFs.RootSignatures()
-	return append([]string{"/etc/hostname"}, sig...)
+	return append([]string{"/etc/issue"}, sig...)
 }
 
 func (d *sDebianLikeRootFs) DeployHostname(rootFs IDiskPartition, hn, domain string) error {

@@ -101,7 +101,10 @@ type SDiskInfo struct {
 	StorageExternalId string
 	StorageType       string
 	SizeGB            int
+	Iops              int
 	Name              string
+	// aws gp3 only
+	Throughput int
 }
 
 type GuestDiskCreateOptions struct {
@@ -346,4 +349,9 @@ type ServerVncOutput struct {
 	Session       string `json:"session"`
 
 	Hypervisor string `json:"hypervisor"`
+}
+
+type SInstanceUpdateOptions struct {
+	NAME        string
+	Description string
 }

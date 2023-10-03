@@ -88,22 +88,16 @@ func (self *SKVMGuestDriver) GetInstanceCapability() cloudprovider.SInstanceCapa
 		},
 		Storages: cloudprovider.Storage{
 			SysDisk: []cloudprovider.StorageInfo{
-				{
-					StorageType: api.STORAGE_LOCAL,
-					MinSizeGb:   30,
-					MaxSizeGb:   2048,
-					StepSizeGb:  1,
-					Resizable:   true,
-				},
+				{StorageType: api.STORAGE_LOCAL, MinSizeGb: options.Options.LocalSysDiskMinSizeGB, MaxSizeGb: options.Options.LocalSysDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
+				{StorageType: api.STORAGE_RBD, MinSizeGb: options.Options.LocalSysDiskMinSizeGB, MaxSizeGb: options.Options.LocalSysDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
+				{StorageType: api.STORAGE_NFS, MinSizeGb: options.Options.LocalSysDiskMinSizeGB, MaxSizeGb: options.Options.LocalSysDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
+				{StorageType: api.STORAGE_GPFS, MinSizeGb: options.Options.LocalSysDiskMinSizeGB, MaxSizeGb: options.Options.LocalSysDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
 			},
 			DataDisk: []cloudprovider.StorageInfo{
-				{
-					StorageType: api.STORAGE_LOCAL,
-					MinSizeGb:   options.Options.LocalDataDiskMinSizeGB,
-					MaxSizeGb:   options.Options.LocalDataDiskMaxSizeGB,
-					StepSizeGb:  1,
-					Resizable:   true,
-				},
+				{StorageType: api.STORAGE_LOCAL, MinSizeGb: options.Options.LocalDataDiskMinSizeGB, MaxSizeGb: options.Options.LocalDataDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
+				{StorageType: api.STORAGE_RBD, MinSizeGb: options.Options.LocalDataDiskMinSizeGB, MaxSizeGb: options.Options.LocalDataDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
+				{StorageType: api.STORAGE_NFS, MinSizeGb: options.Options.LocalDataDiskMinSizeGB, MaxSizeGb: options.Options.LocalDataDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
+				{StorageType: api.STORAGE_GPFS, MinSizeGb: options.Options.LocalDataDiskMinSizeGB, MaxSizeGb: options.Options.LocalDataDiskMaxSizeGB, StepSizeGb: 1, Resizable: true},
 			},
 		},
 	}
@@ -223,6 +217,13 @@ func (self *SKVMGuestDriver) GetGuestVncInfo(ctx context.Context, userCred mccli
 		port = findVNCPort2(results)
 	} else {
 		port = findVNCPort(results)
+	}
+	if port < 5900 {
+		return nil, httperrors.NewResourceNotReadyError("invalid vnc port %d", port)
+	}
+
+	if len(host.AccessIp) == 0 {
+		return nil, httperrors.NewResourceNotReadyError("the host %s loses its ip address", host.Name)
 	}
 
 	password := guest.GetMetadata(ctx, "__vnc_password", userCred)
@@ -596,7 +597,7 @@ func (self *SKVMGuestDriver) GetAttachDiskStatus() ([]string, error) {
 }
 
 func (self *SKVMGuestDriver) GetRebuildRootStatus() ([]string, error) {
-	return []string{api.VM_READY, api.VM_RUNNING}, nil
+	return []string{api.VM_READY}, nil
 }
 
 func (self *SKVMGuestDriver) GetChangeConfigStatus(guest *models.SGuest) ([]string, error) {
@@ -851,6 +852,18 @@ func (self *SKVMGuestDriver) CheckLiveMigrate(ctx context.Context, guest *models
 	return nil
 }
 
+func (self *SKVMGuestDriver) RequestCancelLiveMigrate(ctx context.Context, guest *models.SGuest, userCred mcclient.TokenCredential) error {
+	host, _ := guest.GetHost()
+	url := fmt.Sprintf("%s/servers/%s/cancel-live-migrate", host.ManagerUri, guest.Id)
+	httpClient := httputils.GetDefaultClient()
+	header := mcclient.GetTokenHeaders(userCred)
+	_, _, err := httputils.JSONRequest(httpClient, ctx, "POST", url, header, jsonutils.NewDict(), false)
+	if err != nil {
+		return errors.Wrap(err, "host request")
+	}
+	return nil
+}
+
 func (self *SKVMGuestDriver) ValidateDetachNetwork(ctx context.Context, userCred mcclient.TokenCredential, guest *models.SGuest) error {
 	if guest.Status == api.VM_RUNNING && guest.GetMetadata(ctx, "hot_remove_nic", nil) != "enable" {
 		return httperrors.NewBadRequestError("Guest %s can't hot remove nic", guest.GetName())
@@ -1058,6 +1071,39 @@ func (self *SKVMGuestDriver) QgaRequestGuestPing(ctx context.Context, header htt
 	return nil
 }
 
+func (self *SKVMGuestDriver) QgaRequestGuestInfoTask(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) (jsonutils.JSONObject, error) {
+	url := fmt.Sprintf("%s/servers/%s/qga-guest-info-task", host.ManagerUri, guest.Id)
+	httpClient := httputils.GetDefaultClient()
+	header := mcclient.GetTokenHeaders(userCred)
+	_, res, err := httputils.JSONRequest(httpClient, ctx, "POST", url, header, nil, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "host request")
+	}
+	return res, nil
+}
+
+func (self *SKVMGuestDriver) QgaRequestSetNetwork(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) (jsonutils.JSONObject, error) {
+	url := fmt.Sprintf("%s/servers/%s/qga-set-network", host.ManagerUri, guest.Id)
+	httpClient := httputils.GetDefaultClient()
+	header := mcclient.GetTokenHeaders(userCred)
+	_, res, err := httputils.JSONRequest(httpClient, ctx, "POST", url, header, body, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "host request")
+	}
+	return res, nil
+}
+
+func (self *SKVMGuestDriver) QgaRequestGetNetwork(ctx context.Context, userCred mcclient.TokenCredential, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) (jsonutils.JSONObject, error) {
+	url := fmt.Sprintf("%s/servers/%s/qga-get-network", host.ManagerUri, guest.Id)
+	httpClient := httputils.GetDefaultClient()
+	header := mcclient.GetTokenHeaders(userCred)
+	_, res, err := httputils.JSONRequest(httpClient, ctx, "POST", url, header, nil, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "host request")
+	}
+	return res, nil
+}
+
 func (self *SKVMGuestDriver) QgaRequestSetUserPassword(ctx context.Context, task taskman.ITask, host *models.SHost, guest *models.SGuest, input *api.ServerQgaSetPasswordInput) error {
 	url := fmt.Sprintf("%s/servers/%s/qga-set-password", host.ManagerUri, guest.Id)
 	httpClient := httputils.GetDefaultClient()
@@ -1086,6 +1132,30 @@ func (self *SKVMGuestDriver) FetchMonitorUrl(ctx context.Context, guest *models.
 		return apis.MetaServiceMonitorAgentUrl
 	}
 	return self.SVirtualizedGuestDriver.FetchMonitorUrl(ctx, guest)
+}
+
+func (self *SKVMGuestDriver) RequestResetNicTrafficLimit(ctx context.Context, task taskman.ITask, host *models.SHost, guest *models.SGuest, input *api.ServerNicTrafficLimit) error {
+	url := fmt.Sprintf("%s/servers/%s/reset-nic-traffic-limit", host.ManagerUri, guest.Id)
+	httpClient := httputils.GetDefaultClient()
+	header := task.GetTaskRequestHeader()
+	body := jsonutils.Marshal(input)
+	_, _, err := httputils.JSONRequest(httpClient, ctx, "POST", url, header, body, false)
+	if err != nil {
+		return errors.Wrap(err, "host request")
+	}
+	return nil
+}
+
+func (self *SKVMGuestDriver) RequestSetNicTrafficLimit(ctx context.Context, task taskman.ITask, host *models.SHost, guest *models.SGuest, input *api.ServerNicTrafficLimit) error {
+	url := fmt.Sprintf("%s/servers/%s/set-nic-traffic-limit", host.ManagerUri, guest.Id)
+	httpClient := httputils.GetDefaultClient()
+	header := task.GetTaskRequestHeader()
+	body := jsonutils.Marshal(input)
+	_, _, err := httputils.JSONRequest(httpClient, ctx, "POST", url, header, body, false)
+	if err != nil {
+		return errors.Wrap(err, "host request")
+	}
+	return nil
 }
 
 func (self *SKVMGuestDriver) RequestStartRescue(ctx context.Context, task taskman.ITask, body jsonutils.JSONObject, host *models.SHost, guest *models.SGuest) error {

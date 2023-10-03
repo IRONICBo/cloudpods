@@ -974,6 +974,10 @@ func (s *SKVMGuestInstance) QgaPath() string {
 	return path.Join(s.HomeDir(), "qga.sock")
 }
 
+func (s *SKVMGuestInstance) NicTrafficRecordPath() string {
+	return path.Join(s.HomeDir(), "nic_traffic.json")
+}
+
 func (s *SKVMGuestInstance) InitQga() error {
 	guestAgent, err := qga.NewQemuGuestAgent(s.Id, s.QgaPath())
 	if err != nil {
@@ -2086,6 +2090,7 @@ func getNicBridge(nic *desc.SGuestNetwork) string {
 }
 
 func onNicChange(oldNic, newNic *desc.SGuestNetwork) error {
+	log.Infof("nic changed old: %s new: %s", jsonutils.Marshal(oldNic), jsonutils.Marshal(newNic))
 	// override network base desc
 	oldNic.GuestnetworkBaseDesc = newNic.GuestnetworkBaseDesc
 
@@ -2501,28 +2506,26 @@ func (s *SKVMGuestInstance) SyncQemuCmdline(cmdline string) {
 func (s *SKVMGuestInstance) doBlockIoThrottle() {
 	disks := s.Desc.Disks
 	if len(disks) > 0 {
-		bps := disks[0].Bps
-		iops := disks[0].Iops
-		if bps > 0 || iops > 0 {
-			s.BlockIoThrottle(context.Background(), int64(bps), int64(iops))
-		}
+		s.BlockIoThrottle(context.Background())
 	}
 }
 
 func (s *SKVMGuestInstance) onGuestPrelaunch() error {
 	s.LiveMigrateDestPort = nil
-	if options.HostOptions.SetVncPassword {
-		s.SetVncPassword()
-	}
-	if s.isMemcleanEnabled() {
-		if err := s.startMemCleaner(); err != nil {
-			return err
+	if !s.Desc.IsSlave {
+		if options.HostOptions.SetVncPassword {
+			s.SetVncPassword()
 		}
+		if s.isMemcleanEnabled() {
+			if err := s.startMemCleaner(); err != nil {
+				return err
+			}
+		}
+		s.OnResumeSyncMetadataInfo()
+		s.GuestPrelaunchSetCgroup()
+		s.optimizeOom()
+		s.doBlockIoThrottle()
 	}
-	s.OnResumeSyncMetadataInfo()
-	s.GuestPrelaunchSetCgroup()
-	s.optimizeOom()
-	s.doBlockIoThrottle()
 	return nil
 }
 
@@ -2818,9 +2821,9 @@ func (s *SKVMGuestInstance) onlineResizeDisk(ctx context.Context, diskId string,
 	task.Start()
 }
 
-func (s *SKVMGuestInstance) BlockIoThrottle(ctx context.Context, bps, iops int64) error {
-	task := SGuestBlockIoThrottleTask{s, ctx, bps, iops}
-	return task.Start()
+func (s *SKVMGuestInstance) BlockIoThrottle(ctx context.Context) {
+	task := SGuestBlockIoThrottleTask{s, ctx}
+	task.Start()
 }
 
 func (s *SKVMGuestInstance) IsSharedStorage() bool {
