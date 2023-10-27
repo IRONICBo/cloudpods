@@ -1016,27 +1016,32 @@ func (self *SGuest) StartResumeTask(ctx context.Context, userCred mcclient.Token
 	return self.GetDriver().StartResumeTask(ctx, userCred, self, nil, parentTaskId)
 }
 
-func (self *SGuest) PerformStart(ctx context.Context, userCred mcclient.TokenCredential, query jsonutils.JSONObject,
-	data jsonutils.JSONObject) (jsonutils.JSONObject, error) {
+func (self *SGuest) PerformStart(
+	ctx context.Context,
+	userCred mcclient.TokenCredential,
+	query jsonutils.JSONObject,
+	input api.GuestPerformStartInput,
+) (jsonutils.JSONObject, error) {
 	if utils.IsInStringArray(self.Status, []string{api.VM_READY, api.VM_START_FAILED, api.VM_SAVE_DISK_FAILED, api.VM_SUSPEND}) {
 		if err := self.ValidateEncryption(ctx, userCred); err != nil {
 			return nil, errors.Wrap(httperrors.ErrForbidden, "encryption key not accessible")
 		}
 		if !self.guestDisksStorageTypeIsShared() {
 			host, _ := self.GetHost()
-			guestsMem, err := host.GetNotReadyGuestsMemorySize()
+			guestStats, err := host.GetNotReadyGuestsStat()
 			if err != nil {
 				return nil, err
 			}
-			if float32(guestsMem+self.VmemSize) > host.GetVirtualMemorySize() {
+
+			if float32(guestStats.GuestVcpuCount+self.VcpuCount) > host.GetVirtualCPUCount() {
+				return nil, httperrors.NewInsufficientResourceError("host virtual cpu not enough")
+			}
+			if float32(guestStats.GuestVmemSize+self.VmemSize) > host.GetVirtualMemorySize() {
 				return nil, httperrors.NewInsufficientResourceError("host virtual memory not enough")
 			}
 		}
 		if self.isAllDisksReady() {
-			var kwargs *jsonutils.JSONDict
-			if data != nil {
-				kwargs = data.(*jsonutils.JSONDict)
-			}
+			kwargs := jsonutils.Marshal(input).(*jsonutils.JSONDict)
 			err := self.GetDriver().PerformStart(ctx, userCred, self, kwargs)
 			return nil, err
 		} else {
@@ -4137,8 +4142,8 @@ func (self *SGuest) PerformStreamDisksComplete(ctx context.Context, userCred mcc
 			SnapshotManager.AddRefCount(disk.SnapshotId, -1)
 			disk.SetMetadata(ctx, "merge_snapshot", jsonutils.JSONFalse, userCred)
 		}
-		if len(disk.GetMetadata(ctx, api.DISK_META_ESXI_FLAT_FILE_PATH, nil)) > 0 {
-			disk.SetMetadata(ctx, api.DISK_META_ESXI_FLAT_FILE_PATH, "", userCred)
+		if len(disk.GetMetadata(ctx, api.DISK_META_REMOTE_ACCESS_PATH, nil)) > 0 {
+			disk.SetMetadata(ctx, api.DISK_META_REMOTE_ACCESS_PATH, "", userCred)
 		}
 	}
 	return nil, nil
@@ -4447,141 +4452,6 @@ func (self *SGuest) GenerateVirtInstallCommandLine(
 	// debug print
 	cmd += "-d"
 	return cmd, nil
-}
-
-func (self *SGuest) PerformConvert(
-	ctx context.Context, userCred mcclient.TokenCredential,
-	query jsonutils.JSONObject, data *api.ConvertEsxiToKvmInput,
-) (jsonutils.JSONObject, error) {
-	switch data.TargetHypervisor {
-	case api.HYPERVISOR_KVM:
-		return self.PerformConvertToKvm(ctx, userCred, query, data)
-	default:
-		return nil, httperrors.NewBadRequestError("not support hypervisor %s", data.TargetHypervisor)
-	}
-}
-
-func (self *SGuest) PerformConvertToKvm(
-	ctx context.Context, userCred mcclient.TokenCredential,
-	query jsonutils.JSONObject, data *api.ConvertEsxiToKvmInput,
-) (jsonutils.JSONObject, error) {
-	if self.Hypervisor != api.HYPERVISOR_ESXI {
-		return nil, httperrors.NewBadRequestError("not support %s", self.Hypervisor)
-	}
-	if len(self.GetMetadata(ctx, api.SERVER_META_CONVERTED_SERVER, userCred)) > 0 {
-		return nil, httperrors.NewBadRequestError("guest has been converted")
-	}
-	preferHost := data.PreferHost
-	if len(preferHost) > 0 {
-		iHost, err := HostManager.FetchByIdOrName(userCred, preferHost)
-		if err != nil {
-			return nil, err
-		}
-		host := iHost.(*SHost)
-		if host.HostType != api.HOST_TYPE_HYPERVISOR {
-			return nil, httperrors.NewBadRequestError("host %s is not kvm host", preferHost)
-		}
-		preferHost = host.GetId()
-	}
-
-	if self.Status != api.VM_READY {
-		return nil, httperrors.NewBadRequestError("guest status must be ready")
-	}
-
-	nets, err := self.GetNetworks("")
-	if err != nil {
-		return nil, errors.Wrap(err, "GetNetworks")
-	}
-	if len(nets) == 0 {
-		syncIps := self.GetMetadata(ctx, "sync_ips", userCred)
-		if len(syncIps) > 0 {
-			return nil, errors.Wrap(httperrors.ErrInvalidStatus, "VMware network not configured properly")
-		}
-	}
-
-	newGuest, createInput, err := self.createConvertedServer(ctx, userCred)
-	if err != nil {
-		return nil, errors.Wrap(err, "create converted server")
-	}
-	return nil, self.StartConvertEsxiToKvmTask(ctx, userCred, preferHost, newGuest, createInput)
-}
-
-func (self *SGuest) StartConvertEsxiToKvmTask(
-	ctx context.Context, userCred mcclient.TokenCredential,
-	preferHostId string, newGuest *SGuest, createInput *api.ServerCreateInput,
-) error {
-	params := jsonutils.NewDict()
-	if len(preferHostId) > 0 {
-		params.Set("prefer_host_id", jsonutils.NewString(preferHostId))
-	}
-	params.Set("target_guest_id", jsonutils.NewString(newGuest.Id))
-	params.Set("input", jsonutils.Marshal(createInput))
-	task, err := taskman.TaskManager.NewTask(ctx, "GuestConvertEsxiToKvmTask", self, userCred,
-		params, "", "", nil)
-	if err != nil {
-		return err
-	} else {
-		self.SetStatus(userCred, api.VM_CONVERTING, "esxi guest convert to kvm")
-		task.ScheduleRun(nil)
-		return nil
-	}
-}
-
-func (self *SGuest) createConvertedServer(
-	ctx context.Context, userCred mcclient.TokenCredential,
-) (*SGuest, *api.ServerCreateInput, error) {
-	// set guest pending usage
-	pendingUsage, pendingRegionUsage, err := self.getGuestUsage(1)
-	keys, err := self.GetQuotaKeys()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "GetQuotaKeys")
-	}
-	pendingUsage.SetKeys(keys)
-	err = quotas.CheckSetPendingQuota(ctx, userCred, &pendingUsage)
-	if err != nil {
-		return nil, nil, httperrors.NewOutOfQuotaError("Check set pending quota error %s", err)
-	}
-	regionKeys, err := self.GetRegionalQuotaKeys()
-	if err != nil {
-		quotas.CancelPendingUsage(ctx, userCred, &pendingUsage, &pendingUsage, false)
-		return nil, nil, errors.Wrap(err, "GetRegionalQuotaKeys")
-	}
-	pendingRegionUsage.SetKeys(regionKeys)
-	err = quotas.CheckSetPendingQuota(ctx, userCred, &pendingRegionUsage)
-	if err != nil {
-		quotas.CancelPendingUsage(ctx, userCred, &pendingUsage, &pendingUsage, false)
-		return nil, nil, errors.Wrap(err, "CheckSetPendingQuota")
-	}
-	// generate guest create params
-	createInput := self.ToCreateInput(ctx, userCred)
-	createInput.Hypervisor = api.HYPERVISOR_KVM
-	createInput.PreferHost = ""
-	createInput.Vdi = api.VM_VDI_PROTOCOL_VNC
-	createInput.GenerateName = fmt.Sprintf("%s-%s", self.Name, api.HYPERVISOR_KVM)
-	// change drivers so as to bootable in KVM
-	for i := range createInput.Disks {
-		if createInput.Disks[i].Driver != "ide" {
-			createInput.Disks[i].Driver = "ide"
-		}
-		createInput.Disks[i].Format = ""
-		createInput.Disks[i].Backend = ""
-		createInput.Disks[i].Medium = ""
-	}
-	for i := range createInput.Networks {
-		if createInput.Networks[i].Driver != "e1000" && createInput.Networks[i].Driver != "vmxnet3" {
-			createInput.Networks[i].Driver = "e1000"
-		}
-	}
-
-	lockman.LockClass(ctx, GuestManager, userCred.GetProjectId())
-	defer lockman.ReleaseClass(ctx, GuestManager, userCred.GetProjectId())
-	newGuest, err := db.DoCreate(GuestManager, ctx, userCred, nil,
-		jsonutils.Marshal(createInput), self.GetOwnerId())
-	quotas.CancelPendingUsage(ctx, userCred, &pendingUsage, &pendingUsage, true)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "db.DoCreate")
-	}
-	return newGuest.(*SGuest), createInput, nil
 }
 
 func (self *SGuest) PerformSyncFixNics(ctx context.Context,

@@ -194,13 +194,6 @@ func (self *SInstance) GetProjectId() string {
 	return self.TenantId
 }
 
-func (self *SInstance) AssignSecurityGroup(id string) error {
-	input := api.GuestAssignSecgroupInput{}
-	input.SecgroupId = id
-	_, err := self.host.zone.region.perform(&modules.Servers, self.Id, "assign-secgroup", input)
-	return err
-}
-
 func (self *SInstance) SetSecurityGroups(ids []string) error {
 	if self.Hypervisor == api.HYPERVISOR_ESXI {
 		return nil
@@ -362,6 +355,22 @@ func (self *SInstance) LiveMigrateVM(hostId string) error {
 	skipCpuCheck := true
 	input.SkipCpuCheck = &skipCpuCheck
 	_, err := self.host.zone.region.perform(&modules.Servers, self.Id, "live-migrate", input)
+	return err
+}
+
+func (self *SInstance) GetDetails() (*api.ServerDetails, error) {
+	ret := &api.ServerDetails{}
+	err := self.host.zone.region.cli.get(&modules.Servers, self.Id, nil, ret)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (self *SInstance) VMSetStatus(status string) error {
+	input := apis.PerformStatusInput{}
+	input.Status = status
+	_, err := self.host.zone.region.perform(&modules.Servers, self.Id, "status", input)
 	return err
 }
 

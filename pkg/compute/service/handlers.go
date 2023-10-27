@@ -46,6 +46,7 @@ func InitHandlers(app *appsrv.Application) {
 	quotas.AddQuotaHandler(&models.InfrasQuotaManager.SQuotaBaseManager, "", app)
 
 	usages.AddUsageHandler("", app)
+	usages.AddHistoryUsageHandler("", app)
 	capabilities.AddCapabilityHandler("", app)
 	specs.AddSpecHandler("", app)
 	sshkeys.AddSshKeysHandler("", app)
@@ -65,6 +66,7 @@ func InitHandlers(app *appsrv.Application) {
 		models.GuestcdromManager,
 		models.GuestFloppyManager,
 		models.NetInterfaceManager,
+		models.NetworkAdditionalWireManager,
 
 		models.QuotaManager,
 		models.QuotaUsageManager,
@@ -129,7 +131,6 @@ func InitHandlers(app *appsrv.Application) {
 		models.IsolatedDeviceManager,
 		models.IsolatedDeviceModelManager,
 		models.SecurityGroupManager,
-		models.SecurityGroupCacheManager,
 		models.SecurityGroupRuleManager,
 		models.ElasticipManager,
 		models.NatGatewayManager,

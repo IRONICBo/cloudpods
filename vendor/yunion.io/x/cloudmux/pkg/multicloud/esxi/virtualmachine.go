@@ -33,6 +33,7 @@ import (
 	"yunion.io/x/jsonutils"
 	"yunion.io/x/log"
 	"yunion.io/x/pkg/errors"
+	"yunion.io/x/pkg/gotypes"
 	"yunion.io/x/pkg/util/billing"
 	"yunion.io/x/pkg/util/imagetools"
 	"yunion.io/x/pkg/util/netutils"
@@ -112,6 +113,10 @@ func (svm *SVirtualMachine) GetSecurityGroupIds() ([]string, error) {
 }
 
 func (svm *SVirtualMachine) GetTags() (map[string]string, error) {
+	// not support tags
+	if gotypes.IsNil(svm.manager.client.ServiceContent.CustomFieldsManager) {
+		return nil, cloudprovider.ErrNotSupported
+	}
 	ret := map[int32]string{}
 	for _, val := range svm.object.Entity().ExtensibleManagedObject.AvailableField {
 		ret[val.Key] = val.Name
@@ -139,6 +144,10 @@ func (svm *SVirtualMachine) GetTags() (map[string]string, error) {
 }
 
 func (svm *SVirtualMachine) SetTags(tags map[string]string, replace bool) error {
+	// not support tags
+	if gotypes.IsNil(svm.manager.client.ServiceContent.CustomFieldsManager) {
+		return cloudprovider.ErrNotSupported
+	}
 	oldTags, err := svm.GetTags()
 	if err != nil {
 		return errors.Wrapf(err, "GetTags")
@@ -241,6 +250,12 @@ func (svm *SVirtualMachine) Refresh() error {
 	var moObj mo.VirtualMachine
 	err := svm.manager.reference2Object(svm.object.Reference(), VIRTUAL_MACHINE_PROPS, &moObj)
 	if err != nil {
+		if e := errors.Cause(err); soap.IsSoapFault(e) {
+			_, ok := soap.ToSoapFault(e).VimFault().(types.ManagedObjectNotFound)
+			if ok {
+				return cloudprovider.ErrNotFound
+			}
+		}
 		return err
 	}
 	base.object = &moObj
@@ -789,10 +804,6 @@ func (svm *SVirtualMachine) doChangeConfig(ctx context.Context, ncpu int32, vmem
 	return svm.Refresh()
 }
 
-func (svm *SVirtualMachine) AssignSecurityGroup(secgroupId string) error {
-	return cloudprovider.ErrNotImplemented
-}
-
 func (svm *SVirtualMachine) SetSecurityGroups(secgroupIds []string) error {
 	return cloudprovider.ErrNotImplemented
 }
@@ -863,10 +874,7 @@ func (svm *SVirtualMachine) fetchHardwareInfo() error {
 
 		if reflectutils.StructContains(devType, etherType) {
 			vnic := NewVirtualNIC(svm, dev, len(svm.vnics))
-			if len(vnic.GetIP()) > 0 {
-				// only nics with ip is valid
-				svm.vnics = append(svm.vnics, vnic)
-			}
+			svm.vnics = append(svm.vnics, vnic)
 		} else if reflectutils.StructContains(devType, diskType) {
 			svm.vdisks = append(svm.vdisks, NewVirtualDisk(svm, dev, len(svm.vdisks)))
 		} else if reflectutils.StructContains(devType, vgaType) {

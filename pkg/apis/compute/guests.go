@@ -442,13 +442,16 @@ type GuestAutoRenewInput struct {
 	Duration string `json:"duration"`
 }
 
-type ConvertEsxiToKvmInput struct {
+type ConvertToKvmInput struct {
 	apis.Meta
 
 	// target hypervisor
 	TargetHypervisor string `json:"target_hypervisor"`
 	// 指定转换的宿主机
 	PreferHost string `json:"prefer_host"`
+
+	// dest guest network configs
+	Networks []*NetworkConfig `json:"networks"`
 }
 
 type GuestSaveToTemplateInput struct {
@@ -1106,4 +1109,10 @@ type ServerLoginInfoOutput struct {
 	LoginKey string `json:"login_key"`
 	Keypair  string `json:"keypair"`
 	Password string `json:"password"`
+}
+
+type GuestPerformStartInput struct {
+	// 指定启动虚拟机的Qemu版本，可选值：2.12.1, 4.2.0
+	// 仅适用于KVM虚拟机
+	QemuVersion string `json:"qemu_version"`
 }

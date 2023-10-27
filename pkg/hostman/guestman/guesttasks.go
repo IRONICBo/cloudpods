@@ -1101,7 +1101,7 @@ func (s *SGuestLiveMigrateTask) onSetAutoConverge(res string) {
 	s.Monitor.MigrateSetCapability("events", "on", s.onMigrateEnableEvents)
 }
 
-func (s SGuestLiveMigrateTask) onMigrateEnableEvents(res string) {
+func (s *SGuestLiveMigrateTask) onMigrateEnableEvents(res string) {
 	if strings.Contains(strings.ToLower(res), "error") {
 		s.migrateFailed(fmt.Sprintf("Migrate set capability events error: %s", res))
 		return
@@ -1244,7 +1244,17 @@ func (s *SGuestLiveMigrateTask) onDriveMirrorDisksFailed(res string) {
 }
 
 func (s *SGuestLiveMigrateTask) doMigrate() {
-	s.mirrorDisks("")
+	if s.params.NbdServerPort > 0 {
+		s.mirrorDisks("")
+	} else {
+		var copyIncremental = false
+		if s.params.IsLocal {
+			// copy disk data
+			copyIncremental = true
+		}
+		s.Monitor.Migrate(fmt.Sprintf("tcp:%s:%d", s.params.DestIp, s.params.DestPort),
+			copyIncremental, false, s.setMaxBandwidth)
+	}
 }
 
 func (s *SGuestLiveMigrateTask) setMaxBandwidth(res string) {

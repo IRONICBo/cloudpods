@@ -17,33 +17,34 @@ package compute
 import "yunion.io/x/cloudmux/pkg/apis/compute"
 
 const (
-	VM_INIT            = compute.VM_INIT
-	VM_UNKNOWN         = compute.VM_UNKNOWN
-	VM_SCHEDULE        = "schedule"
-	VM_SCHEDULE_FAILED = "sched_fail"
-	VM_CREATE_NETWORK  = "network"
-	VM_NETWORK_FAILED  = "net_fail"
-	VM_DEVICE_FAILED   = "dev_fail"
-	VM_CREATE_FAILED   = compute.VM_CREATE_FAILED
-	VM_CREATE_DISK     = "disk"
-	VM_DISK_FAILED     = "disk_fail"
-	VM_IMAGE_CACHING   = "image_caching" // 缓存镜像中
-	VM_START_DEPLOY    = "start_deploy"
-	VM_DEPLOYING       = compute.VM_DEPLOYING
-	VM_DEPLOY_FAILED   = compute.VM_DEPLOY_FAILED
-	VM_READY           = compute.VM_READY
-	VM_START_START     = compute.VM_START_START
-	VM_STARTING        = compute.VM_STARTING
-	VM_START_FAILED    = "start_fail" // # = ready
-	VM_RUNNING         = compute.VM_RUNNING
-	VM_START_STOP      = compute.VM_START_STOP
-	VM_STOPPING        = compute.VM_STOPPING
-	VM_STOP_FAILED     = "stop_fail" // # = running
-	VM_RENEWING        = "renewing"
-	VM_RENEW_FAILED    = "renew_failed"
-	VM_ATTACH_DISK     = "attach_disk"
-	VM_DETACH_DISK     = "detach_disk"
-	VM_UNSYNC          = "unsync"
+	VM_INIT                  = compute.VM_INIT
+	VM_UNKNOWN               = compute.VM_UNKNOWN
+	VM_SCHEDULE              = "schedule"
+	VM_SCHEDULE_FAILED       = "sched_fail"
+	VM_CREATE_NETWORK        = "network"
+	VM_NETWORK_FAILED        = "net_fail"
+	VM_DEVICE_FAILED         = "dev_fail"
+	VM_CREATE_FAILED         = compute.VM_CREATE_FAILED
+	VM_CREATE_DISK           = "disk"
+	VM_DISK_FAILED           = "disk_fail"
+	VM_SECURITY_GROUP_FAILED = "security_group_fail"
+	VM_IMAGE_CACHING         = "image_caching" // 缓存镜像中
+	VM_START_DEPLOY          = "start_deploy"
+	VM_DEPLOYING             = compute.VM_DEPLOYING
+	VM_DEPLOY_FAILED         = compute.VM_DEPLOY_FAILED
+	VM_READY                 = compute.VM_READY
+	VM_START_START           = compute.VM_START_START
+	VM_STARTING              = compute.VM_STARTING
+	VM_START_FAILED          = "start_fail" // # = ready
+	VM_RUNNING               = compute.VM_RUNNING
+	VM_START_STOP            = compute.VM_START_STOP
+	VM_STOPPING              = compute.VM_STOPPING
+	VM_STOP_FAILED           = "stop_fail" // # = running
+	VM_RENEWING              = "renewing"
+	VM_RENEW_FAILED          = "renew_failed"
+	VM_ATTACH_DISK           = "attach_disk"
+	VM_DETACH_DISK           = "detach_disk"
+	VM_UNSYNC                = "unsync"
 
 	VM_START_RESCUE        = "start_rescue"
 	VM_RESCUING            = "rescuing"
@@ -197,6 +198,7 @@ const (
 	HYPERVISOR_HCSOP          = compute.HYPERVISOR_HCSOP
 	HYPERVISOR_OPENSTACK      = compute.HYPERVISOR_OPENSTACK
 	HYPERVISOR_UCLOUD         = compute.HYPERVISOR_UCLOUD
+	HYPERVISOR_VOLCENGINE     = compute.HYPERVISOR_VOLCENGINE
 	HYPERVISOR_ZSTACK         = compute.HYPERVISOR_ZSTACK
 	HYPERVISOR_GOOGLE         = compute.HYPERVISOR_GOOGLE
 	HYPERVISOR_CTYUN          = compute.HYPERVISOR_CTYUN
@@ -274,6 +276,7 @@ var HYPERVISORS = []string{
 	HYPERVISOR_HCSOP,
 	HYPERVISOR_OPENSTACK,
 	HYPERVISOR_UCLOUD,
+	HYPERVISOR_VOLCENGINE,
 	HYPERVISOR_ZSTACK,
 	HYPERVISOR_GOOGLE,
 	HYPERVISOR_CTYUN,
@@ -305,6 +308,7 @@ var PUBLIC_CLOUD_HYPERVISORS = []string{
 	HYPERVISOR_QCLOUD,
 	HYPERVISOR_HUAWEI,
 	HYPERVISOR_UCLOUD,
+	HYPERVISOR_VOLCENGINE,
 	HYPERVISOR_GOOGLE,
 	HYPERVISOR_CTYUN,
 	HYPERVISOR_ECLOUD,
@@ -349,6 +353,7 @@ var HYPERVISOR_HOSTTYPE = map[string]string{
 	HYPERVISOR_HCS:            HOST_TYPE_HCS,
 	HYPERVISOR_OPENSTACK:      HOST_TYPE_OPENSTACK,
 	HYPERVISOR_UCLOUD:         HOST_TYPE_UCLOUD,
+	HYPERVISOR_VOLCENGINE:     HOST_TYPE_VOLCENGINE,
 	HYPERVISOR_ZSTACK:         HOST_TYPE_ZSTACK,
 	HYPERVISOR_GOOGLE:         HOST_TYPE_GOOGLE,
 	HYPERVISOR_CTYUN:          HOST_TYPE_CTYUN,
@@ -383,6 +388,7 @@ var HOSTTYPE_HYPERVISOR = map[string]string{
 	HOST_TYPE_HCS:            HYPERVISOR_HCS,
 	HOST_TYPE_OPENSTACK:      HYPERVISOR_OPENSTACK,
 	HOST_TYPE_UCLOUD:         HYPERVISOR_UCLOUD,
+	HOST_TYPE_VOLCENGINE:     HYPERVISOR_VOLCENGINE,
 	HOST_TYPE_ZSTACK:         HYPERVISOR_ZSTACK,
 	HOST_TYPE_GOOGLE:         HYPERVISOR_GOOGLE,
 	HOST_TYPE_CTYUN:          HYPERVISOR_CTYUN,

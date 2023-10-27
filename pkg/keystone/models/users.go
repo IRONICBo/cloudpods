@@ -837,10 +837,17 @@ func (user *SUser) PostUpdate(ctx context.Context, userCred mcclient.TokenCreden
 		}
 		logclient.AddActionLogWithContext(ctx, user, logclient.ACT_UPDATE_PASSWORD, nil, userCred, true)
 	}
-	if enabled, _ := data.Bool("enabled"); enabled {
-		err := user.clearFailedAuth()
-		if err != nil {
-			log.Errorf("clearFailedAuth %s", err)
+	if enabled, err := data.Bool("enabled"); err == nil {
+		if enabled {
+			err := user.clearFailedAuth()
+			if err != nil {
+				log.Errorf("clearFailedAuth %s", err)
+			}
+		} else {
+			batchErr := TokenCacheManager.BatchInvalidateByUserId(ctx, userCred, user.Id)
+			if batchErr != nil {
+				log.Errorf("BatchInvalidateByUserId fail %s", batchErr)
+			}
 		}
 	}
 }
@@ -928,6 +935,13 @@ func (user *SUser) Delete(ctx context.Context, userCred mcclient.TokenCredential
 		err = PasswordManager.delete(localUser.Id)
 		if err != nil {
 			return errors.Wrap(err, "PasswordManager.delete")
+		}
+	}
+
+	{
+		batchErr := TokenCacheManager.BatchInvalidateByUserId(ctx, userCred, user.Id)
+		if batchErr != nil {
+			log.Errorf("BatchInvalidateByUserId fail %s", batchErr)
 		}
 	}
 
@@ -1330,4 +1344,23 @@ func (user *SUser) PerformEnable(
 		log.Errorf("clearFailedAuth %s", err)
 	}
 	return user.SEnabledIdentityBaseResource.PerformEnable(ctx, userCred, query, input)
+}
+
+func (user *SUser) PerformDisable(
+	ctx context.Context,
+	userCred mcclient.TokenCredential,
+	query jsonutils.JSONObject,
+	input apis.PerformDisableInput,
+) (jsonutils.JSONObject, error) {
+	_, err := user.SEnabledIdentityBaseResource.PerformDisable(ctx, userCred, query, input)
+	if err != nil {
+		return nil, errors.Wrap(err, "SEnabledIdentityBaseResource.PerformDisable")
+	}
+	{
+		batchErr := TokenCacheManager.BatchInvalidateByUserId(ctx, userCred, user.Id)
+		if batchErr != nil {
+			log.Errorf("BatchInvalidateByUserId fail %s", batchErr)
+		}
+	}
+	return nil, nil
 }

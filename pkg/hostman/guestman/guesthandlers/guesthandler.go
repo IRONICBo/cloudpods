@@ -86,6 +86,7 @@ func AddGuestTaskHandler(prefix string, app *appsrv.Application) {
 			"cancel-block-replication": guestCancelBlockReplication,
 			"create-from-libvirt":      guestCreateFromLibvirt,
 			"create-form-esxi":         guestCreateFromEsxi,
+			"create-from-cloudpods":    guestCreateFromCloudpods,
 			"open-forward":             guestOpenForward,
 			"list-forward":             guestListForward,
 			"close-forward":            guestCloseForward,
@@ -448,10 +449,14 @@ func guestLiveMigrate(ctx context.Context, userCred mcclient.TokenCredential, si
 	if err != nil {
 		return nil, httperrors.NewMissingParameterError("live_migrate_dest_port")
 	}
-	nbdServerPort, err := body.Int("nbd_server_port")
-	if err != nil {
-		return nil, httperrors.NewMissingParameterError("live_migrate_dest_port")
+	var nbdServerPort int64 = -1
+	if body.Contains("nbd_server_port") {
+		nbdServerPort, err = body.Int("nbd_server_port")
+		if err != nil {
+			return nil, httperrors.NewMissingParameterError("live_migrate_dest_port")
+		}
 	}
+
 	destIp, err := body.GetString("dest_ip")
 	if err != nil {
 		return nil, httperrors.NewMissingParameterError("dest_ip")
